@@ -57,6 +57,6 @@ void ekf_init(const void * ekf, const dim_t n, const dim_t m);
 	* @param z array of measurement (observation) values
 	* @return 0 on success, 1 on failure caused by non-positive-definite matrix.
 	*/
-//status_t ekf_step(const void * ekf, const number_t * z);
-status_t ekf_step(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed);
+status_t ekf_step(const void * ekf, const number_t * z);
+status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed);
 

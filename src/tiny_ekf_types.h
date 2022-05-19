@@ -1,5 +1,4 @@
 #include <stdbool.h>
-//Definição de tipos
 
 //typedef double number_t;
 typedef float number_t;
@@ -15,8 +14,3 @@ typedef bool bool_t;
 #ifndef ERROR
 #define ERROR 1
 #endif
-
-// typedef enum{
-//   SUCCESS = 0,
-//   ERROR = 1
-// } status_t;

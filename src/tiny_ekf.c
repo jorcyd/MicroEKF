@@ -31,7 +31,7 @@ static status_t choldc1(number_t * a, number_t * p, const dim_t n) {
 				if (sum <= (number_t)0) {
 					return ERROR; /* error */
 				}
-				p[i] = sqrt(sum);
+				p[i] = sqrtf(sum);
 			}
 			else {
 				a[j*n+i] = sum / p[i];
@@ -93,7 +93,6 @@ static status_t cholsl(const number_t * A, number_t * a, number_t * p, const dim
 	return SUCCESS; /* success */
 }
 
-#ifndef	_STRING_H
 #ifdef __ORIGINAL__
 static void zerosk(number_t * a, const  dim_t k)
 {
@@ -102,24 +101,13 @@ static void zerosk(number_t * a, const  dim_t k)
 		a[j] = (number_t)0;	
 }
 #endif
+
 static void zeros(number_t * a, const  dim_t m, const  dim_t n)
 {
 	dim_t j;
 	for (j=0; j<m*n; ++j)
 		a[j] = (number_t)0;
 }
-#else
-#ifdef __ORIGINAL__
-static void zerosk(number_t * a, const  dim_t k)
-{
-	memset(a, 0, k*sizeof(number_t));
-}
-#endif
-static void zeros(number_t * a, const  dim_t m, const  dim_t n)
-{
-	memset(a, 0, m*n*sizeof(number_t));
-}
-#endif
 
 #ifdef __DEBUG__
 static void dump(number_t * a, const dim_t m, const dim_t n, const char * fmt)
@@ -133,21 +121,6 @@ static void dump(number_t * a, const dim_t m, const dim_t n, const char * fmt)
 			printf(f, a[i*n+j]);
 		printf("\n");
 	}
-}
-#endif
-
-/* C <- A * B */
-#ifdef __ORIGINAL__
-static void mulmat(const number_t * a, const number_t * b, number_t * c, const dim_t arows, const dim_t acols, const dim_t bcols)
-{
-    int i, j,l;
-
-    for(i=0; i<arows; ++i)
-        for(j=0; j<bcols; ++j) {
-            c[i*bcols+j] = 0;
-            for(l=0; l<acols; ++l)
-                c[i*bcols+j] += a[i*acols+l] * b[l*bcols+j];
-        }
 }
 #endif
 
@@ -172,19 +145,6 @@ static void macmats(const number_t * a, const number_t * b, number_t * c, const 
 			for(j=0; j<bcols; ++j)
 				c[i*bcols+j] -= a[i*acols+l] * b[l*bcols+j];
 }
-
-#ifdef __ORIGINAL__
-static void mulvec(const number_t * a, const  number_t * x, number_t * y, const dim_t m, const dim_t n)
-{
-	dim_t i, j;
-
-	for(i=0; i<m; ++i) {
-		y[i] = (number_t)0;
-		for(j=0; j<n; ++j)
-			y[i] += x[j] * a[i*n+j];
-	}
-}
-#endif
 
 static void macvec(const number_t * a, const  number_t * x, number_t * y, const dim_t m, const dim_t n)
 {
@@ -216,18 +176,6 @@ static void copymat(number_t * a, const number_t * b, const dim_t m, const dim_t
 			a[i*n+j] += b[i*n+j];
 }
 
-/* A <- A + B */
-#ifdef __ORIGINAL__
-static void accum(number_t * a, const number_t * b, const dim_t m, const dim_t n)
-{        
-	dim_t i,j;
-
-	for(i=0; i<m; ++i)
-		for(j=0; j<n; ++j)
-			a[i*n+j] += b[i*n+j];
-}
-#endif
-
 static void copyvec(number_t * a, const number_t * b, const dim_t n)
 {
 	dim_t j;
@@ -235,17 +183,6 @@ static void copyvec(number_t * a, const number_t * b, const dim_t n)
 	for(j=0; j<n; ++j)
 		a[j] = b[j];
 }
-
-/* C <- A + B */
-#ifdef __ORIGINAL__
-static void add(const number_t * a, const number_t * b, number_t * c, const dim_t n)
-{
-	dim_t j;
-
-	for(j=0; j<n; ++j)
-		c[j] = a[j] + b[j];
-}
-#endif
 
 /* C <- A - B */
 static void sub(const number_t * a, const number_t * b, number_t * c, const dim_t n)
@@ -256,17 +193,6 @@ static void sub(const number_t * a, const number_t * b, number_t * c, const dim_
 		c[j] = a[j] - b[j];
 }
 
-#ifdef __ORIGINAL__
-static void negate(number_t * a, const dim_t m, const dim_t n)
-{        
-	dim_t i, j;
-
-	for(i=0; i<m; ++i)
-		for(j=0; j<n; ++j)
-			a[i*n+j] = -a[i*n+j];
-}
-#endif
-
 static void eye(number_t * a, const dim_t n)
 {
 	zeros(a,n,n);
@@ -274,15 +200,6 @@ static void eye(number_t * a, const dim_t n)
 	for (i=0; i<n; ++i)
 		a[i*n+i] = 1;
 }
-
-#ifdef __ORIGINAL__
-static void mat_addeye(number_t * a, const dim_t n)
-{
-	dim_t i;
-	for (i=0; i<n; ++i)
-		a[i*n+i] += 1;
-}
-#endif
 
 /* TinyEKF code ------------------------------------------------------------------- */
 
@@ -362,12 +279,12 @@ void ekf_reset_tmp(unpacked_ekf_t ekf, const dim_t n, const dim_t m){
 	zeros(ekf.tmp1, n, m);
 	zeros(ekf.tmp2, m, n);
 	zeros(ekf.tmp3, m, m);
-	zeros(ekf.tmp4, m, m);
-	//zerosk(ekf.tmp5, m);		//Does not need to be reset ?
+	//zeros(ekf.tmp4, m, m);	//Not needed
+	//zerosk(ekf.tmp5, m);		//Not needed
 }
 
 /*z = State vector */
-status_t ekf_step(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
+status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
 {
 	/* unpack incoming structure */
 	dim_t * ptr = (dim_t *)v;
@@ -381,16 +298,14 @@ status_t ekf_step(const void * v, const number_t * z,bool_t F_changed,bool_t H_c
  
 	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
-	if(F_changed)
-		transpose(ekf.F, ekf.Ft, n, n);				//F^T_{k-1}
+	if(F_changed) transpose(ekf.F, ekf.Ft, n, n);	//F^T_{k-1}
 	macmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);		//tmp0 = F_{k-1} * P_{k-1}
 	copymat(ekf.Pp, ekf.Q, n, n);					//P_k = Q_{k-1}
 	macmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);		//P_k = P_k + tmp0 * F^T_{k-1}
 
 	/* Update : Optimal Kalman gain */
 	/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-	if(H_changed)
-		transpose(ekf.H, ekf.Ht, m, n);				//H^T_k
+	if(H_changed) transpose(ekf.H, ekf.Ht, m, n);	//H^T_k
 	macmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);		//tmp1 = P_k * H^T_k
 	macmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);		//tmp2 = H_k * P_k
 	copymat(ekf.tmp3, ekf.R, m, m);					//tmp3 = R
@@ -403,9 +318,7 @@ status_t ekf_step(const void * v, const number_t * z,bool_t F_changed,bool_t H_c
 	sub(z, ekf.hx, ekf.tmp5, m);					//tmp5 = z_k - h(\hat{x}_k)
 	copyvec(ekf.x,ekf.fx, n);						//\hat{x}_k = \hat{x_k}
 	macvec(ekf.G, ekf.tmp5, ekf.x, n, m);			//\hat{x}_k = = \hat{x}_k = + G*tmp5		
-//	Subtile floating point difference here.
-//	mulvec(ekf.G, ekf.tmp5, ekf.tmp2, n, m);		//tmp2 = G*tmp5
-//	add(ekf.fx, ekf.tmp2, ekf.x, n);				//\hat{x}_k = \hat{x_k} + tmp2
+	//Subtile floating point difference here. - mulvec + add
 
 	/* Update : Updated (a posteriori) estimate covariance */
 	/* P_k = (I - G_k H_k) P_k */
@@ -418,50 +331,6 @@ status_t ekf_step(const void * v, const number_t * z,bool_t F_changed,bool_t H_c
 	return SUCCESS;
 }
 
-#ifdef __ORIGINAL__
-status_t ekf_step(const void * v, const number_t * z)
-{        
-
-	/* unpack incoming structure */
-	dim_t * ptr = (dim_t *)v;
-	dim_t n = *ptr;
-	ptr++;
-	dim_t m = *ptr;
-
-	unpacked_ekf_t ekf;
-	unpack(v, &ekf, n, m); 
- 
- 	/* Predict : Predicted (a priori) estimate covariance */
-	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
-	mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);
-	transpose(ekf.F, ekf.Ft, n, n);
-	mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);
-	accum(ekf.Pp, ekf.Q, n, n);
-
-	/* Update : Optimal Kalman gain */
-	/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-	transpose(ekf.H, ekf.Ht, m, n);
-	mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);
-	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);
-	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);
-	accum(ekf.tmp3, ekf.R, m, m);
-	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;
-	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);
-
-	/* Update : Innovation or measurement pre-fit residual */
-	/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
-	sub(z, ekf.hx, ekf.tmp5, m);
-	mulvec(ekf.G, ekf.tmp5, ekf.tmp2, n, m);
-	add(ekf.fx, ekf.tmp2, ekf.x, n);
-
-	/* Update : Updated (a posteriori) estimate covariance */
-	/* P_k = (I - G_k H_k) P_k */
-	mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);
-	negate(ekf.tmp0, n, n);
-	mat_addeye(ekf.tmp0, n);
-	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);
-
-	/* success */
-	return SUCCESS;
+status_t ekf_step(const void * v, const number_t * z){
+	return(ekf_step_op(v,z,true,true));
 }
-#endif

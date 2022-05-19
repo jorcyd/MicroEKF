@@ -119,7 +119,7 @@ static void model(ekf_t * ekf, number_t SV[4][3])
 			ekf->hx[i] += d*d;
 		}
 		// ekf->hx[i] = pow(ekf->hx[i], 0.5) + ekf->fx[6];
-		ekf->hx[i] = sqrt(ekf->hx[i]) + ekf->fx[6];
+		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];
 	}
 
 	for (i=0; i<4; ++i) {
@@ -219,7 +219,7 @@ int main(int argc, char ** argv)
 		model(&ekf, SV_Pos);
 
 		first_iter = j==0;
-		chol_status = ekf_step(&ekf, SV_Rho,first_iter,first_iter);
+		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
 		if(chol_status == ERROR){
 			printf("Cholesky inversion failed on step %d \n",j);
 		}
