@@ -4,4 +4,6 @@ This branch is intended towards making the C/C++ more parametric, plataform-agno
 <br>
 The code is still highly experimental and comes with absolutely no warranties.<br>
 The author exempts itself from any form of misusage or potential virtual/physical harm it may cause.<br>
-Use it at your own risk.
+Use it at your own risk.<br>
+<br>
+For further details regarding the mathematical derivation of Kalman Filters and its application check https://resourcium.org/journey/introduction-kalman-filter
