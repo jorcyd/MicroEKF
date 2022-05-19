@@ -14,8 +14,8 @@
 /*	Performance Ninja -- Loop Interchange 1 Summary
 	https://www.youtube.com/watch?v=G6BbPB37sYg&list=PLRWO2AL1QAV6bJAU2kgB4xfodGID43Y5d */
 
-/* Cholesky-decomposition matrix-inversion code, adapated from
-   http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
+/*	Cholesky-decomposition matrix-inversion code, adapated from
+	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
 static status_t choldc1(number_t * a, number_t * p, const dim_t n) {
 	dim_t i,j,k;
@@ -93,22 +93,6 @@ static status_t cholsl(const number_t * A, number_t * a, number_t * p, const dim
 	return SUCCESS; /* success */
 }
 
-#ifdef __ORIGINAL__
-static void zerosk(number_t * a, const  dim_t k)
-{
-	dim_t j;
-	for (j=0; j<k; ++j)
-		a[j] = (number_t)0;	
-}
-#endif
-
-static void zeros(number_t * a, const  dim_t m, const  dim_t n)
-{
-	dim_t j;
-	for (j=0; j<m*n; ++j)
-		a[j] = (number_t)0;
-}
-
 #ifdef __DEBUG__
 static void dump(number_t * a, const dim_t m, const dim_t n, const char * fmt)
 {
@@ -123,6 +107,22 @@ static void dump(number_t * a, const dim_t m, const dim_t n, const char * fmt)
 	}
 }
 #endif
+
+#if 0
+static void zerosk(number_t * a, const  dim_t k)
+{
+	dim_t j;
+	for (j=0; j<k; ++j)
+		a[j] = (number_t)0;	
+}
+#endif
+
+static void zeros(number_t * a, const  dim_t m, const  dim_t n)
+{
+	dim_t j;
+	for (j=0; j<m*n; ++j)
+		a[j] = (number_t)0;
+}
 
 //C <- C + A * B 	//l,j interchanged
 static void macmat(const number_t * a, const number_t * b, number_t * c, const dim_t arows, const dim_t acols, const dim_t bcols)
@@ -173,7 +173,7 @@ static void copymat(number_t * a, const number_t * b, const dim_t m, const dim_t
 
 	for(i=0; i<m; ++i)
 		for(j=0; j<n; ++j)
-			a[i*n+j] += b[i*n+j];
+			a[i*n+j] = b[i*n+j];
 }
 
 static void copyvec(number_t * a, const number_t * b, const dim_t n)
@@ -278,7 +278,7 @@ void ekf_reset_tmp(unpacked_ekf_t ekf, const dim_t n, const dim_t m){
 	zeros(ekf.tmp0, n, n);
 	zeros(ekf.tmp1, n, m);
 	zeros(ekf.tmp2, m, n);
-	zeros(ekf.tmp3, m, m);
+	//zeros(ekf.tmp3, m, m);	//Not needed
 	//zeros(ekf.tmp4, m, m);	//Not needed
 	//zerosk(ekf.tmp5, m);		//Not needed
 }
