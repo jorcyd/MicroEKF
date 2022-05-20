@@ -13,7 +13,10 @@
  * 2. Pratap Misra, Per Enge, "Global Positioning System Signals, 
  * Measurements, and Performance(Second Edition)",2006
  * 
- * Copyright (C) 2015 Simon D. Levy
+ * 3. Greg Welch, Gary Bishop , "An Introduction to the Kalman Filter"
+ * Department of Computer Science, University of North Carolina at Chapel Hill, 2006
+ *
+ * Original Copyright (C) : 2015 Simon D. Levy
  *
  * MIT License
  */
