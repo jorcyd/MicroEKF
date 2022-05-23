@@ -7,7 +7,7 @@
 # For generating profiling code per line use -g -pg
 
 CC=gcc
-CFLAGS=-Wall -Wno-unused-function
+CFLAGS=-Wall -Wno-unused-function -Wdouble-promotion 
 PROF=-g -pg
 SRC=../../src
 
