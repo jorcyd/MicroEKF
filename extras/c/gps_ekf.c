@@ -58,7 +58,7 @@ static void init(ekf_t * ekf)
 	blkfill(ekf, Qb,   3);
 
 	// initial covariances of state noise, measurement noise
-	number_t P0 = 10;	//state noise
+	number_t P0 = 10;		//state noise
 	number_t R0 = 36;		//measurament noise
 
 	dim_t i;
@@ -196,10 +196,12 @@ int main(int argc, char ** argv)
 	skipline(ifp);
 
 	// Make a place to store the data from the file and the output of the EKF
+	size_t samples = 25;
+	size_t reps = 1000;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
-	number_t Pos_KF[25][3];
-	number_t Vel_KF[25][3];
+	number_t Pos_KF[samples][3];
+	number_t Vel_KF[samples][3];
 
 	// Open output CSV file and write header
 	const char * OUTFILE = "ekf.csv";
@@ -214,29 +216,35 @@ int main(int argc, char ** argv)
 	dim_t j, k;
 	status_t chol_status = 0;
 	bool_t first_iter = false;
-	// Loop till no more data
-	for (j=0; j<25; ++j) {
+	while(reps--){
+		// Loop till no more data
+		for (j=0; j<samples; ++j) {		
+			readdata(ifp, SV_Pos, SV_Rho);
 
-		readdata(ifp, SV_Pos, SV_Rho);
+			model(&ekf, SV_Pos);
 
-		model(&ekf, SV_Pos);
+			first_iter = j==0;
+			chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
+			if(chol_status == ERROR){
+				printf("Cholesky inversion failed on step %d \n",j);
+			}
 
-		first_iter = j==0;
-		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
-		if(chol_status == ERROR){
-			printf("Cholesky inversion failed on step %d \n",j);
+			// grab positions & velocities
+			for (k=0; k<3; ++k){
+				Pos_KF[j][k] = ekf.x[2*k];
+				Vel_KF[j][k] = ekf.x[2*k+1];
+			}
 		}
-
-		// grab positions & velocities
-		for (k=0; k<3; ++k){
-			Pos_KF[j][k] = ekf.x[2*k];
-			Vel_KF[j][k] = ekf.x[2*k+1];
-		}
+		rewind(ifp);
+		skipline(ifp);
+		ekf_init(&ekf, Nsta, Mobs);
+		// Do local initialization
+		init(&ekf);
 	}
 
 	// Compute means of filtered positions
 	number_t mean_Pos_KF[3] = {0, 0, 0};
-	for (j=0; j<25; ++j){ 
+	for (j=0; j<samples; ++j){ 
 		for (k=0; k<3; ++k){
 			mean_Pos_KF[k] += Pos_KF[j][k];
 		}
@@ -247,7 +255,7 @@ int main(int argc, char ** argv)
 
 
 	// Dump filtered positions minus their means
-	for (j=0; j<25; ++j) {
+	for (j=0; j<samples; ++j) {
 		fprintf(ofp, "%f,%f,%f\n",Pos_KF[j][0]-mean_Pos_KF[0], Pos_KF[j][1]-mean_Pos_KF[1], Pos_KF[j][2]-mean_Pos_KF[2]);
 		printf("%f %f %f / ", Pos_KF[j][0], Pos_KF[j][1], Pos_KF[j][2]);
 		printf("%f %f %f\n", Vel_KF[j][0], Vel_KF[j][1], Vel_KF[j][2]);

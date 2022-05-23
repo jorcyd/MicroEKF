@@ -4,8 +4,12 @@
 # Copyright (C) 2015 Simon D. Levy
 #
 # MIT License
+# For generating profiling code per line use -g -pg
 
-SRC = ../../src
+CC=gcc
+CFLAGS=-Wall -Wno-unused-function
+PROF=-g -pg
+SRC=../../src
 
 all: gps_ekf
 
@@ -13,13 +17,16 @@ run: gps_ekf
 	./gps_ekf
 
 gps_ekf: gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	gcc -Wall -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
+	$(CC) $(CFLAGS) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
+	
+prof:	gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
+	$(CC) $(CFLAGS) $(PROF) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
 
 edit:
 	vim gps_ekf.c
 
 clean:
-	rm -f gps_ekf *.o *~ ekf.csv
+	rm -f gps_ekf gps_ekf.html gps_ekf.js gps_ekf.wasm *.o *.exe *~ ekf.csv gmon.out
 
 #EMCC for testing.
 #emcc -Wall -O0 -g -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c -lm -s WASM=1 --post-js gps_ekf_download.js -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv -Wno-unused-function
