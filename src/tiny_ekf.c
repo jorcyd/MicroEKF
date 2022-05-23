@@ -75,10 +75,11 @@ static status_t cholsl(const number_t *__restrict A, number_t *__restrict a, num
 		}
 	}
 	for (i = 0; i < n; i++) {
-		a[i*n+i] *= a[i*n+i];
+		acc = a[i*n+i] * a[i*n+i];
 		for (k = i + 1; k < n; k++) {
-			a[i*n+i] += a[k*n+i] * a[k*n+i];
+			acc += a[k*n+i] * a[k*n+i];
 		}
+		a[i*n+i] = acc;
 		for (j = i + 1; j < n; j++) {
 			acc = 0;
 			for (k = j; k < n; k++) {
