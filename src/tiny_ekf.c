@@ -17,7 +17,7 @@
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
-static status_t choldc1(number_t * a, number_t * p, const dim_t n) {
+static status_t choldc1(number_t *__restrict a, number_t *__restrict p, const dim_t n) {
 	dim_t i,j,k;
 	number_t sum;
 
@@ -42,7 +42,7 @@ static status_t choldc1(number_t * a, number_t * p, const dim_t n) {
 	return SUCCESS; /* success */
 }
 
-static status_t choldcsl(const number_t * A, number_t * a, number_t * p, const dim_t n) 
+static status_t choldcsl(const number_t *__restrict A, number_t *__restrict a, number_t *__restrict p, const dim_t n) 
 {
 	dim_t i,j,k; number_t sum;
 	for (i = 0; i < n; i++) 
@@ -64,9 +64,10 @@ static status_t choldcsl(const number_t * A, number_t * a, number_t * p, const d
 }
 
 
-static status_t cholsl(const number_t * A, number_t * a, number_t * p, const dim_t n) 
+static status_t cholsl(const number_t *__restrict A, number_t *__restrict a, number_t *__restrict p, const dim_t n) 
 {
 	dim_t i,j,k;
+	number_t acc;
 	if (choldcsl(A,a,p,n)) return ERROR;
 	for (i = 0; i < n; i++) {
 		for (j = i + 1; j < n; j++) {
@@ -79,9 +80,11 @@ static status_t cholsl(const number_t * A, number_t * a, number_t * p, const dim
 			a[i*n+i] += a[k*n+i] * a[k*n+i];
 		}
 		for (j = i + 1; j < n; j++) {
+			acc = 0;
 			for (k = j; k < n; k++) {
-				a[i*n+j] += a[k*n+i] * a[k*n+j];
+				acc += a[k*n+i] * a[k*n+j];
 			}
+			a[i*n+j] += acc;
 		}
 	}
 	for (i = 0; i < n; i++) {
@@ -94,7 +97,7 @@ static status_t cholsl(const number_t * A, number_t * a, number_t * p, const dim
 }
 
 #ifdef __DEBUG__
-static void dump(number_t * a, const dim_t m, const dim_t n, const char * fmt)
+static void dump(number_t *__restrict a, const dim_t m, const dim_t n, const char * fmt)
 {
 	dim_t i,j;
 
@@ -117,7 +120,7 @@ static void zerosk(number_t * a, const  dim_t k)
 }
 #endif
 
-static void zeros(number_t * a, const  dim_t m, const  dim_t n)
+static void zeros(number_t *__restrict a, const  dim_t m, const  dim_t n)
 {
 	dim_t j;
 	for (j=0; j<m*n; ++j)
@@ -125,7 +128,7 @@ static void zeros(number_t * a, const  dim_t m, const  dim_t n)
 }
 
 //C <- C + A * B 	//l,j interchanged
-static void macmat(const number_t * a, const number_t * b, number_t * c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void macmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 
@@ -136,7 +139,7 @@ static void macmat(const number_t * a, const number_t * b, number_t * c, const d
 }
 
 //C <- C - A * B
-static void macmats(const number_t * a, const number_t * b, number_t * c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void macmats(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 
@@ -147,33 +150,33 @@ static void macmats(const number_t * a, const number_t * b, number_t * c, const 
 }
 
 //C <- A * B
-static void mulmat(const number_t * a, const number_t * b, number_t * c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void mulmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
-	number_t sum;
+	number_t acc;
 	for(i=0; i<arows; ++i)
 		for(j=0; j<bcols; ++j) {
-			sum = 0;
+			acc = 0;
 			for(l=0; l<acols; ++l)
-				sum += a[i*acols+l] * b[l*bcols+j];
-			c[i*bcols+j] = sum;
+				acc += a[i*acols+l] * b[l*bcols+j];
+			c[i*bcols+j] = acc;
 		}
 }
 
-static void mulvec(const number_t * a, const  number_t * x, number_t * y, const dim_t m, const dim_t n)
+static void mulvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
-	number_t sum;
+	number_t acc;
 
 	for(i=0; i<m; ++i) {
-		sum = 0;
+		acc = 0;
 		for(j=0; j<n; ++j)
-		    sum += x[j] * a[i*n+j];
-		y[i] = sum;
+		    acc += x[j] * a[i*n+j];
+		y[i] = acc;
 	}
 }
 
-static void macvec(const number_t * a, const  number_t * x, number_t * y, const dim_t m, const dim_t n)
+static void macvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
 
@@ -183,7 +186,7 @@ static void macvec(const number_t * a, const  number_t * x, number_t * y, const 
 	}
 }
 
-static void transpose(const number_t * a, number_t * at, const dim_t m, const dim_t n)
+static void transpose(const number_t *__restrict a, number_t *__restrict at, const dim_t m, const dim_t n)
 {
 	dim_t i,j;
 
@@ -194,7 +197,7 @@ static void transpose(const number_t * a, number_t * at, const dim_t m, const di
 }
 
 /* A <- A + B */
-static void accum(number_t * a, const number_t * b, const dim_t m, const dim_t n)
+static void accum(number_t *__restrict a, const number_t *__restrict b, const dim_t m, const dim_t n)
 {
 	int i,j;
 
@@ -204,7 +207,7 @@ static void accum(number_t * a, const number_t * b, const dim_t m, const dim_t n
 }
 
 /* A <- B */
-static void copymat(number_t * a, const number_t * b, const dim_t m, const dim_t n)
+static void copymat(number_t *__restrict a, const number_t *__restrict b, const dim_t m, const dim_t n)
 {        
 	dim_t i,j;
 
@@ -213,7 +216,7 @@ static void copymat(number_t * a, const number_t * b, const dim_t m, const dim_t
 			a[i*n+j] = b[i*n+j];
 }
 
-static void copyvec(number_t * a, const number_t * b, const dim_t n)
+static void copyvec(number_t *__restrict a, const number_t *__restrict b, const dim_t n)
 {
 	dim_t j;
 
@@ -222,7 +225,7 @@ static void copyvec(number_t * a, const number_t * b, const dim_t n)
 }
 
 /* C <- A + B */
-static void add(const number_t * a, const number_t * b, number_t * c, const dim_t n)
+static void add(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
 {
 	int j;
 
@@ -231,7 +234,7 @@ static void add(const number_t * a, const number_t * b, number_t * c, const dim_
 }
 
 /* C <- A - B */
-static void sub(const number_t * a, const number_t * b, number_t * c, const dim_t n)
+static void sub(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
 {
 	dim_t j;
 
@@ -239,7 +242,7 @@ static void sub(const number_t * a, const number_t * b, number_t * c, const dim_
 		c[j] = a[j] - b[j];
 }
 
-static void eye(number_t * a, const dim_t n)
+static void eye(number_t *__restrict a, const dim_t n)
 {
 	zeros(a,n,n);
 	dim_t i;
@@ -247,7 +250,7 @@ static void eye(number_t * a, const dim_t n)
 		a[i*n+i] = 1;
 }
 
-static void negate(number_t * a, const dim_t m, const dim_t n)
+static void negate(number_t *__restrict a, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
 
@@ -256,7 +259,7 @@ static void negate(number_t * a, const dim_t m, const dim_t n)
 		a[i*n+j] = -a[i*n+j];
 }
 
-static void mat_addeye(number_t * a, const dim_t n)
+static void mat_addeye(number_t *__restrict a, const dim_t n)
 {
 	dim_t i;
 	for (i=0; i<n; ++i)
@@ -276,7 +279,7 @@ number_t clamp2(number_t x, number_t min, number_t max)
 /* TinyEKF code ------------------------------------------------------------------- */
 
 //__attribute__((packed)) on void v
-static void unpack(const void * v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
+static void unpack(const void *__restrict v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
 {
 	/* skip over n, m in data structure */
 	byte_t * cptr = (byte_t *)v;
@@ -355,9 +358,50 @@ void ekf_reset_tmp(unpacked_ekf_t ekf, const dim_t n, const dim_t m){
 	//zerosk(ekf.tmp5, m);		//Not needed
 }
 
-/*z = State vector */
-#if 0
 status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
+{        
+    /* unpack incoming structure */
+
+    int * ptr = (int *)v;
+    int n = *ptr;
+    ptr++;
+    int m = *ptr;
+
+    unpacked_ekf_t ekf;
+    unpack(v, &ekf, n, m); 
+ 
+    /* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
+    if(F_changed) transpose(ekf.F, ekf.Ft, n, n);
+    mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);
+    mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);
+    accum(ekf.Pp, ekf.Q, n, n);
+
+    /* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
+    if(H_changed) transpose(ekf.H, ekf.Ht, m, n);
+    mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);
+    mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);
+    mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);
+    accum(ekf.tmp3, ekf.R, m, m);
+    if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m)) return ERROR;
+    mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);
+
+    /* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
+    sub(z, ekf.hx, ekf.tmp5, m);
+    mulvec(ekf.G, ekf.tmp5, ekf.tmp2, n, m);
+    add(ekf.fx, ekf.tmp2, ekf.x, n);
+
+    /* P_k = (I - G_k H_k) P_k */
+    mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);
+    negate(ekf.tmp0, n, n);
+    mat_addeye(ekf.tmp0, n);
+    mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);
+
+    /* success */
+    return SUCCESS;
+}
+
+/*z = State vector */
+status_t ekf_step_op_2(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
 {
 	/* unpack incoming structure */
 	dim_t * ptr = (dim_t *)v;
@@ -404,49 +448,6 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
 
 	/* success */
 	return SUCCESS;
-}
-#endif
-
-status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
-{        
-    /* unpack incoming structure */
-
-    int * ptr = (int *)v;
-    int n = *ptr;
-    ptr++;
-    int m = *ptr;
-
-    unpacked_ekf_t ekf;
-    unpack(v, &ekf, n, m); 
- 
-    /* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
-    if(F_changed) transpose(ekf.F, ekf.Ft, n, n);
-    mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);
-    mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);
-    accum(ekf.Pp, ekf.Q, n, n);
-
-    /* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-    if(H_changed) transpose(ekf.H, ekf.Ht, m, n);
-    mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);
-    mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);
-    mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);
-    accum(ekf.tmp3, ekf.R, m, m);
-    if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m)) return ERROR;
-    mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);
-
-    /* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
-    sub(z, ekf.hx, ekf.tmp5, m);
-    mulvec(ekf.G, ekf.tmp5, ekf.tmp2, n, m);
-    add(ekf.fx, ekf.tmp2, ekf.x, n);
-
-    /* P_k = (I - G_k H_k) P_k */
-    mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);
-    negate(ekf.tmp0, n, n);
-    mat_addeye(ekf.tmp0, n);
-    mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);
-
-    /* success */
-    return SUCCESS;
 }
 
 status_t ekf_step(const void * v, const number_t * z){

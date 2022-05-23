@@ -59,6 +59,7 @@ void ekf_init(const void * ekf, const dim_t n, const dim_t m);
 	*/
 status_t ekf_step(const void * ekf, const number_t * z);
 status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed);
+status_t ekf_step_op_2(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed);
 //number_t clamp2(number_t x, number_t min, number_t max);
 
 
