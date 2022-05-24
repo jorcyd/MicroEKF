@@ -216,6 +216,7 @@ int main(int argc, char ** argv)
 	dim_t j, k;
 	status_t chol_status = 0;
 	bool_t first_iter = false;
+	//Model should be initalized first.
 	//External loop for profiling only
 	// while(reps--){
 	// Loop till no more data

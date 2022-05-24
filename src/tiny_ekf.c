@@ -1,7 +1,7 @@
 /*
  * TinyEKF: Extended Kalman Filter for embedded processors
  *
- * Copyright (C) 2015 Simon D. Levy
+ * Original Copyright (C) 2015 Simon D. Levy
  *
  * MIT License
  */
@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include "tiny_ekf.h"
 
-/*	Performance Ninja -- Loop Interchange 1 Summary
-	https://www.youtube.com/watch?v=G6BbPB37sYg&list=PLRWO2AL1QAV6bJAU2kgB4xfodGID43Y5d */
+/*	Writing Cache Friendly Code
+	https://courses.engr.illinois.edu/cs232/sp2009/lectures/X18.pdf */
 
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
@@ -71,7 +71,7 @@ static status_t cholsl(const number_t *__restrict A, number_t *__restrict a, num
 	if (choldcsl(A,a,p,n)) return ERROR;
 	for (i = 0; i < n; i++) {
 		for (j = i + 1; j < n; j++) {
-			a[i*n+j] = (number_t)0;//0.0;
+			a[i*n+j] = (number_t)0;
 		}
 	}
 	for (i = 0; i < n; i++) {
@@ -128,28 +128,40 @@ static void zeros(number_t *__restrict a, const  dim_t m, const  dim_t n)
 		a[j] = (number_t)0;
 }
 
+#if 0
 //C <- C + A * B 	//l,j interchanged
 static void macmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
+	number_t ctx;
 
 	for(i=0; i<arows; ++i)
-		for(l=0; l<acols; ++l)
+		for(l=0; l<acols; ++l) {
+			ctx = a[i*acols+l];
 			for(j=0; j<bcols; ++j)
-				c[i*bcols+j] += a[i*acols+l] * b[l*bcols+j];
+				c[i*bcols+j] += ctx * b[l*bcols+j];
+		}
 }
+#endif
 
 //C <- C - A * B
+#if 0
 static void macmats(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
+	number_t ctx;
 
 	for(i=0; i<arows; ++i)
-		for(l=0; l<acols; ++l)
+		for(l=0; l<acols; ++l) {
+			ctx = a[i*acols+l];
 			for(j=0; j<bcols; ++j)
-				c[i*bcols+j] -= a[i*acols+l] * b[l*bcols+j];
+				c[i*bcols+j] -= ctx * b[l*bcols+j];
+		}
 }
+#endif
 
+//The standard (i,j,k) tend to scale well for small matrices as it also avoids a redundant write to memory.
+//This loop could also be unrolled easier.
 //C <- A * B
 static void mulmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
@@ -164,6 +176,21 @@ static void mulmat(const number_t *__restrict a, const number_t *__restrict b, n
 		}
 }
 
+//C <- -A * B
+static void mulmats(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
+{
+	dim_t i,j,l;
+	number_t acc;
+	for(i=0; i<arows; ++i)
+		for(j=0; j<bcols; ++j) {
+			acc = 0;
+			for(l=0; l<acols; ++l)
+				acc -= a[i*acols+l] * b[l*bcols+j];
+			c[i*bcols+j] = acc;
+		}
+}
+
+#if 0
 static void mulvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
@@ -176,6 +203,7 @@ static void mulvec(const number_t *__restrict a, const  number_t *__restrict x, 
 		y[i] = acc;
 	}
 }
+#endif
 
 static void macvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
 {
@@ -210,6 +238,7 @@ static void accum(number_t *__restrict a, const number_t *__restrict b, const di
 			a[i*n+j] += b[i*n+j];
 }
 
+#if 0
 /* A <- B */
 static void copymat(number_t *__restrict a, const number_t *__restrict b, const dim_t m, const dim_t n)
 {        
@@ -219,6 +248,7 @@ static void copymat(number_t *__restrict a, const number_t *__restrict b, const 
 		for(j=0; j<n; ++j)
 			a[i*n+j] = b[i*n+j];
 }
+#endif
 
 static void copyvec(number_t *__restrict a, const number_t *__restrict b, const dim_t n)
 {
@@ -228,6 +258,7 @@ static void copyvec(number_t *__restrict a, const number_t *__restrict b, const 
 		a[j] = b[j];
 }
 
+#if 0
 /* C <- A + B */
 static void add(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
 {
@@ -236,6 +267,7 @@ static void add(const number_t *__restrict a, const number_t *__restrict b, numb
 	for(j=0; j<n; ++j)
 		c[j] = a[j] + b[j];
 }
+#endif
 
 /* C <- A - B */
 static void sub(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
@@ -246,6 +278,7 @@ static void sub(const number_t *__restrict a, const number_t *__restrict b, numb
 		c[j] = a[j] - b[j];
 }
 
+#if 0
 static void eye(number_t *__restrict a, const dim_t n)
 {
 	zeros(a,n,n);
@@ -253,7 +286,9 @@ static void eye(number_t *__restrict a, const dim_t n)
 	for (i=0; i<n; ++i)
 		a[i*n+i] = 1;
 }
+#endif
 
+#if 0
 static void negate(number_t *__restrict a, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
@@ -262,6 +297,7 @@ static void negate(number_t *__restrict a, const dim_t m, const dim_t n)
 		for(j=0; j<n; ++j)
 		a[i*n+j] = -a[i*n+j];
 }
+#endif
 
 static void mat_addeye(number_t *__restrict a, const dim_t n)
 {
@@ -393,8 +429,8 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
 
 	/* Update : Updated (a posteriori) estimate covariance */
 	/* P_k = (I - G_k H_k) P_k */
-	mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);
-	negate(ekf.tmp0, n, n);
+	mulmats(ekf.G, ekf.H, ekf.tmp0, n, m, n);
+	//negate(ekf.tmp0, n, n);
 	mat_addeye(ekf.tmp0, n);
 	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);
 

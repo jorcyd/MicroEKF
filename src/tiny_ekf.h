@@ -1,7 +1,7 @@
 /*
  * TinyEKF: Extended Kalman Filter for embedded processors.
  *
- * Copyright (C) 2015 Simon D. Levy
+ * Original Copyright (C) 2015 Simon D. Levy
  *
  * MIT License
  */
@@ -59,5 +59,3 @@ void ekf_init(const void * ekf, const dim_t n, const dim_t m);
 	*/
 status_t ekf_step(const void * ekf, const number_t * z);
 status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed);
-
-
