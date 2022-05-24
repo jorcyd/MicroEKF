@@ -197,7 +197,7 @@ int main(int argc, char ** argv)
 
 	// Make a place to store the data from the file and the output of the EKF
 	size_t samples = 25;
-	size_t reps = 1000;
+	//size_t reps = 1000;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
 	number_t Pos_KF[samples][3];
@@ -216,31 +216,32 @@ int main(int argc, char ** argv)
 	dim_t j, k;
 	status_t chol_status = 0;
 	bool_t first_iter = false;
-	while(reps--){
-		// Loop till no more data
-		for (j=0; j<samples; ++j) {		
-			readdata(ifp, SV_Pos, SV_Rho);
+	//External loop for profiling only
+	// while(reps--){
+	// Loop till no more data
+	for (j=0; j<samples; ++j) {		
+		readdata(ifp, SV_Pos, SV_Rho);
 
-			model(&ekf, SV_Pos);
+		model(&ekf, SV_Pos);
 
-			first_iter = j==0;
-			chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
-			if(chol_status == ERROR){
-				printf("Cholesky inversion failed on step %d \n",j);
-			}
-
-			// grab positions & velocities
-			for (k=0; k<3; ++k){
-				Pos_KF[j][k] = ekf.x[2*k];
-				Vel_KF[j][k] = ekf.x[2*k+1];
-			}
+		first_iter = j==0;
+		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
+		if(chol_status == ERROR){
+			printf("Cholesky inversion failed on step %d \n",j);
 		}
-		rewind(ifp);
-		skipline(ifp);
-		ekf_init(&ekf, Nsta, Mobs);
-		// Do local initialization
-		init(&ekf);
+
+		// grab positions & velocities
+		for (k=0; k<3; ++k){
+			Pos_KF[j][k] = ekf.x[2*k];
+			Vel_KF[j][k] = ekf.x[2*k+1];
+		}
 	}
+	// 	rewind(ifp);
+	// 	skipline(ifp);
+	// 	ekf_init(&ekf, Nsta, Mobs);
+	// 	// Do local initialization
+	// 	init(&ekf);
+	// }
 
 	// Compute means of filtered positions
 	number_t mean_Pos_KF[3] = {0, 0, 0};
