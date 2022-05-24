@@ -17,7 +17,7 @@
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
-static status_t choldc1(number_t *__restrict a, number_t *__restrict p, const dim_t n) {
+static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
 	dim_t i,j,k;
 	number_t acc;
 
@@ -42,7 +42,7 @@ static status_t choldc1(number_t *__restrict a, number_t *__restrict p, const di
 	return SUCCESS; /* success */
 }
 
-static status_t choldcsl(const number_t *__restrict A, number_t *__restrict a, number_t *__restrict p, const dim_t n) 
+static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) 
 {
 	dim_t i,j,k; number_t acc;
 	for (i = 0; i < n; i++) 
@@ -64,7 +64,7 @@ static status_t choldcsl(const number_t *__restrict A, number_t *__restrict a, n
 }
 
 
-static status_t cholsl(const number_t *__restrict A, number_t *__restrict a, number_t *__restrict p, const dim_t n) 
+static status_t cholsl(const number_t *__restrict__ A, number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) 
 {
 	dim_t i,j,k;
 	number_t acc;
@@ -98,7 +98,7 @@ static status_t cholsl(const number_t *__restrict A, number_t *__restrict a, num
 }
 
 #ifdef __DEBUG__
-static void dump(number_t *__restrict a, const dim_t m, const dim_t n, const char * fmt)
+static void dump(number_t *__restrict__ a, const dim_t m, const dim_t n, const char * fmt)
 {
 	dim_t i,j;
 
@@ -121,7 +121,7 @@ static void zerosk(number_t * a, const  dim_t k)
 }
 #endif
 
-static void zeros(number_t *__restrict a, const  dim_t m, const  dim_t n)
+static void zeros(number_t *__restrict__ a, const  dim_t m, const  dim_t n)
 {
 	dim_t j;
 	for (j=0; j<m*n; ++j)
@@ -130,7 +130,7 @@ static void zeros(number_t *__restrict a, const  dim_t m, const  dim_t n)
 
 #if 0
 //C <- C + A * B 	//l,j interchanged
-static void macmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void macmat(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 	number_t ctx;
@@ -146,7 +146,7 @@ static void macmat(const number_t *__restrict a, const number_t *__restrict b, n
 
 //C <- C - A * B
 #if 0
-static void macmats(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void macmats(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 	number_t ctx;
@@ -163,7 +163,7 @@ static void macmats(const number_t *__restrict a, const number_t *__restrict b, 
 //The standard (i,j,k) tend to scale well for small matrices as it also avoids a redundant write to memory.
 //This loop could also be unrolled easier.
 //C <- A * B
-static void mulmat(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void mulmat(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 	number_t acc;
@@ -177,7 +177,7 @@ static void mulmat(const number_t *__restrict a, const number_t *__restrict b, n
 }
 
 //C <- -A * B
-static void mulmats(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t arows, const dim_t acols, const dim_t bcols)
+static void mulmats(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t arows, const dim_t acols, const dim_t bcols)
 {
 	dim_t i,j,l;
 	number_t acc;
@@ -191,7 +191,7 @@ static void mulmats(const number_t *__restrict a, const number_t *__restrict b, 
 }
 
 #if 0
-static void mulvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
+static void mulvec(const number_t *__restrict__ a, const  number_t *__restrict__ x, number_t *__restrict__ y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
 	number_t acc;
@@ -205,7 +205,7 @@ static void mulvec(const number_t *__restrict a, const  number_t *__restrict x, 
 }
 #endif
 
-static void macvec(const number_t *__restrict a, const  number_t *__restrict x, number_t *__restrict y, const dim_t m, const dim_t n)
+static void macvec(const number_t *__restrict__ a, const  number_t *__restrict__ x, number_t *__restrict__ y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
 	number_t acc;
@@ -218,7 +218,7 @@ static void macvec(const number_t *__restrict a, const  number_t *__restrict x, 
 	}
 }
 
-static void transpose(const number_t *__restrict a, number_t *__restrict at, const dim_t m, const dim_t n)
+static void transpose(const number_t *__restrict__ a, number_t *__restrict__ at, const dim_t m, const dim_t n)
 {
 	dim_t i,j;
 
@@ -229,7 +229,7 @@ static void transpose(const number_t *__restrict a, number_t *__restrict at, con
 }
 
 /* A <- A + B */
-static void accum(number_t *__restrict a, const number_t *__restrict b, const dim_t m, const dim_t n)
+static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t m, const dim_t n)
 {
 	int i,j;
 
@@ -240,7 +240,7 @@ static void accum(number_t *__restrict a, const number_t *__restrict b, const di
 
 #if 0
 /* A <- B */
-static void copymat(number_t *__restrict a, const number_t *__restrict b, const dim_t m, const dim_t n)
+static void copymat(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t m, const dim_t n)
 {        
 	dim_t i,j;
 
@@ -250,7 +250,7 @@ static void copymat(number_t *__restrict a, const number_t *__restrict b, const 
 }
 #endif
 
-static void copyvec(number_t *__restrict a, const number_t *__restrict b, const dim_t n)
+static void copyvec(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t n)
 {
 	dim_t j;
 
@@ -260,7 +260,7 @@ static void copyvec(number_t *__restrict a, const number_t *__restrict b, const 
 
 #if 0
 /* C <- A + B */
-static void add(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
+static void add(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t n)
 {
 	int j;
 
@@ -270,7 +270,7 @@ static void add(const number_t *__restrict a, const number_t *__restrict b, numb
 #endif
 
 /* C <- A - B */
-static void sub(const number_t *__restrict a, const number_t *__restrict b, number_t *__restrict c, const dim_t n)
+static void sub(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t n)
 {
 	dim_t j;
 
@@ -279,7 +279,7 @@ static void sub(const number_t *__restrict a, const number_t *__restrict b, numb
 }
 
 #if 0
-static void eye(number_t *__restrict a, const dim_t n)
+static void eye(number_t *__restrict__ a, const dim_t n)
 {
 	zeros(a,n,n);
 	dim_t i;
@@ -289,7 +289,7 @@ static void eye(number_t *__restrict a, const dim_t n)
 #endif
 
 #if 0
-static void negate(number_t *__restrict a, const dim_t m, const dim_t n)
+static void negate(number_t *__restrict__ a, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
 
@@ -299,7 +299,7 @@ static void negate(number_t *__restrict a, const dim_t m, const dim_t n)
 }
 #endif
 
-static void mat_addeye(number_t *__restrict a, const dim_t n)
+static void mat_addeye(number_t *__restrict__ a, const dim_t n)
 {
 	dim_t i;
 	for (i=0; i<n; ++i)
@@ -308,8 +308,21 @@ static void mat_addeye(number_t *__restrict a, const dim_t n)
 
 /* TinyEKF code ------------------------------------------------------------------- */
 
+#if 0
+static void ekf_reset_tmp(unpacked_ekf_t ekf, const dim_t n, const dim_t m){
+	zeros(ekf.G, n, m);
+	zeros(ekf.Pp, n, n);
+	zeros(ekf.tmp0, n, n);
+	zeros(ekf.tmp1, n, m);
+	zeros(ekf.tmp2, m, n);
+	//zeros(ekf.tmp3, m, m);	//Not needed
+	//zeros(ekf.tmp4, m, m);	//Not needed
+	//zerosk(ekf.tmp5, m);		//Not needed
+}
+#endif
+
 //__attribute__((packed)) on void v
-static void unpack(const void *__restrict v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
+static void unpack(const void *__restrict__ v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
 {
 	/* skip over n, m in data structure */
 	byte_t * cptr = (byte_t *)v;
@@ -375,17 +388,6 @@ void ekf_init(const void * v, const dim_t n, const dim_t m)
 	zeros(ekf.G, n, m);
 	zeros(ekf.F, n, n);
 	zeros(ekf.H, m, n);
-}
-
-void ekf_reset_tmp(unpacked_ekf_t ekf, const dim_t n, const dim_t m){
-	zeros(ekf.G, n, m);
-	zeros(ekf.Pp, n, n);
-	zeros(ekf.tmp0, n, n);
-	zeros(ekf.tmp1, n, m);
-	zeros(ekf.tmp2, m, n);
-	//zeros(ekf.tmp3, m, m);	//Not needed
-	//zeros(ekf.tmp4, m, m);	//Not needed
-	//zerosk(ekf.tmp5, m);		//Not needed
 }
 
 status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
