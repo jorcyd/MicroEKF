@@ -94,9 +94,9 @@ static void init(ekf_t * ekf)
 	ekf->x[7] = (number_t)4.549246345845814e+001;
 }
 
+//As part of the EKF both F and H matrices can change over time
 static void model(ekf_t * ekf, number_t SV[4][3])
 { 
-
 	dim_t i, j;
 
 	for (j=0; j<8; j+=2) {
@@ -113,15 +113,15 @@ static void model(ekf_t * ekf, number_t SV[4][3])
 	}
 
 	number_t dx[4][3];
+	number_t d;
 
 	for (i=0; i<4; ++i) {
 		ekf->hx[i] = 0;
 		for (j=0; j<3; ++j) {
-			number_t d = ekf->fx[j*2] - SV[i][j];
+			d = ekf->fx[j*2] - SV[i][j];
 			dx[i][j] = d;
 			ekf->hx[i] += d*d;
 		}
-		// ekf->hx[i] = pow(ekf->hx[i], 0.5) + ekf->fx[6];
 		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];
 	}
 
@@ -152,14 +152,12 @@ static void readdata(FILE * fp, number_t SV_Pos[4][3], number_t SV_Rho[4])
 	for (i=0; i<4; ++i) {
 		for (j=0; j<3; ++j) {
 			SV_Pos[i][j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
-			//printf("%d,%d,%f \n",i,j,SV_Pos[i][j]);
 			p = strtok(NULL, ",");
 		}
 	}
 
 	for (j=0; j<4; ++j) {
 		SV_Rho[j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
-		//printf("%d,%f \n",j,SV_Rho[j]);
 		p = strtok(NULL, ",");
 	}
 }
@@ -216,7 +214,6 @@ int main(int argc, char ** argv)
 	dim_t j, k;
 	status_t chol_status = 0;
 	bool_t first_iter = false;
-	//Model should be initalized first.
 	//External loop for profiling only
 	// while(reps--){
 	// Loop till no more data
@@ -226,12 +223,12 @@ int main(int argc, char ** argv)
 		model(&ekf, SV_Pos);
 
 		first_iter = j==0;
-		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,first_iter);
+		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,true);	//Observation matrix always change
 		if(chol_status == ERROR){
 			printf("Cholesky inversion failed on step %d \n",j);
 		}
 
-		// grab positions & velocities
+		// grab positions & velocities - 
 		for (k=0; k<3; ++k){
 			Pos_KF[j][k] = ekf.x[2*k];
 			Vel_KF[j][k] = ekf.x[2*k+1];
