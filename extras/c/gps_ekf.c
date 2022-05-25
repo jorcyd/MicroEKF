@@ -218,6 +218,11 @@ int main(int argc, char ** argv)
 	// while(reps--){
 	// Loop till no more data
 	for (j=0; j<samples; ++j) {		
+		// if(j>=25 && j%25==0){
+		// 	rewind(ifp);
+		// 	skipline(ifp);
+		// }
+
 		readdata(ifp, SV_Pos, SV_Rho);
 
 		model(&ekf, SV_Pos);
