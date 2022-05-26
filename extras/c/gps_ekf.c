@@ -194,7 +194,7 @@ int main(int argc, char ** argv)
 	skipline(ifp);
 
 	// Make a place to store the data from the file and the output of the EKF
-	size_t samples = 25;
+	size_t samples = 250;
 	//size_t reps = 1000;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
@@ -218,10 +218,10 @@ int main(int argc, char ** argv)
 	// while(reps--){
 	// Loop till no more data
 	for (j=0; j<samples; ++j) {		
-		// if(j>=25 && j%25==0){
-		// 	rewind(ifp);
-		// 	skipline(ifp);
-		// }
+		if(j>=25 && j%25==0){
+			rewind(ifp);
+			skipline(ifp);
+		}
 
 		readdata(ifp, SV_Pos, SV_Rho);
 

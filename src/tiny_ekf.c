@@ -11,7 +11,10 @@
 #include <stdio.h>
 #include "tiny_ekf.h"
 
-/*	Writing Cache Friendly Code
+/* 	Square root algorithm (Kalman Filter)
+	https://stats.stackexchange.com/questions/254749/square-root-algorithm-kalman-filter */
+
+/*	Writing Cache Friendly Code - Comparison of Matrix Multiplication
 	https://courses.engr.illinois.edu/cs232/sp2009/lectures/X18.pdf */
 
 /*	Cholesky-decomposition matrix-inversion code, adapated from
@@ -197,6 +200,20 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 			a[i*n+j] += b[i*n+j];
 }
 
+/* A <- (A+B)/2*/
+// #if 0
+static void mean(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t m, const dim_t n)
+{
+	int i,j;
+
+	for(i=0; i<m; ++i)
+		for(j=0; j<n; ++j){
+			a[i*n+j] = (a[i*n+j] + b[i*n+j])*0.5f;	//for floats
+			//a[i*n+j] = (a[i*n+j] + b[i*n+j])/2;	//-O1
+		}
+}
+// #endif
+
 static void copyvec(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t n)
 {
 	dim_t j;
@@ -356,7 +373,13 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
 	/* P_k = (I - G_k H_k) P_k */
 	mulmats(ekf.G, ekf.H, ekf.tmp0, n, m, n);			//tmp0 = -G_k*H_k
 	mat_addeye(ekf.tmp0, n);							//tmp0 += I
-	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k = tmp0*P_k
+	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k+ = tmp0*P_k
+
+	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
+	/* P_k =() P_k + P_k^T)/2*/
+	transpose(ekf.P, ekf.tmp0, n, n);
+	//dump(ekf.P,n,n,"|%f|");
+	mean(ekf.P, ekf.tmp0, n, n);
 
 	/* success */
 	return SUCCESS;
