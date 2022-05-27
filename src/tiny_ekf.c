@@ -201,10 +201,10 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 }
 
 /* A <- (A+B)/2*/
-// #if 0
+#if 0
 static void mean(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t m, const dim_t n)
 {
-	int i,j;
+	dim_t i,j;
 
 	for(i=0; i<m; ++i)
 		for(j=0; j<n; ++j){
@@ -212,7 +212,22 @@ static void mean(number_t *__restrict__ a, const number_t *__restrict__ b, const
 			//a[i*n+j] = (a[i*n+j] + b[i*n+j])/2;	//-O1
 		}
 }
-// #endif
+#endif
+
+/* A <- (A + A^T)/2*/
+static void covadjust(number_t *__restrict__ a, const dim_t n) //square mat.
+{
+	dim_t i,j;
+	number_t mean;
+
+	for(i=0; i<n; ++i)
+		for(j=i+1; j<n; ++j){
+			mean = (a[i*n+j] + a[j*n+i])*0.5f;	//for floats
+			//mean = (a[i*n+j] + b[j*n+i])/2;	//-O1
+			a[i*n+j] = mean;
+			a[j*n+i] = mean;
+		}
+}
 
 static void copyvec(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t n)
 {
@@ -376,10 +391,10 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
 	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k+ = tmp0*P_k
 
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
-	/* P_k =() P_k + P_k^T)/2*/
-	transpose(ekf.P, ekf.tmp0, n, n);
-	//dump(ekf.P,n,n,"|%f|");
-	mean(ekf.P, ekf.tmp0, n, n);
+	/* P_k =( P_k + P_k^T)/2*/
+	covadjust(ekf.P,n);
+	// transpose(ekf.P, ekf.tmp0, n, n);
+	// mean(ekf.P, ekf.tmp0, n, n);
 
 	/* success */
 	return SUCCESS;
