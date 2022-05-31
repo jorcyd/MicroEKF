@@ -101,7 +101,7 @@ static status_t cholsl(const number_t *__restrict__ A, number_t *__restrict__ a,
 }
 
 #ifdef __DEBUG__
-static void dump(number_t *__restrict__ a, const dim_t m, const dim_t n, const char * fmt)
+static void dump(const number_t *__restrict__ a, const dim_t m, const dim_t n, const char * fmt)
 {
 	dim_t i,j;
 
@@ -347,7 +347,7 @@ void ekf_init(const void * v, const dim_t n, const dim_t m)
 }
 
 /*z = State vector */
-status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t H_changed)
+status_t ekf_step(const void * v, const number_t * z)
 {
 	/* unpack incoming structure */
 
@@ -364,14 +364,14 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
  
  	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
-	if(F_changed) transpose(ekf.F, ekf.Ft, n, n);		//F^T_{k-1}
+	transpose(ekf.F, ekf.Ft, n, n);						//F^T_{k-1}
 	mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);			//tmp0 = F_{k-1}*P_{k-1}
 	mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);			//P_k = tmp0*F^T_{k-1}
 	accum(ekf.Pp, ekf.Q, n, n);							//P_k += Q_{k-1}
 
 	/* Update : Optimal Kalman gain */
 	/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-	if(H_changed) transpose(ekf.H, ekf.Ht, m, n);		//H^T_k
+	transpose(ekf.H, ekf.Ht, m, n);						//H^T_k
 	mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);			//tmp1 = P_k*H^T_k
 	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
 	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
@@ -398,8 +398,4 @@ status_t ekf_step_op(const void * v, const number_t * z,bool_t F_changed,bool_t 
 
 	/* success */
 	return SUCCESS;
-}
-
-status_t ekf_step(const void * v, const number_t * z){
-	return(ekf_step_op(v,z,true,true));
 }

@@ -57,7 +57,7 @@ static void init(ekf_t * ekf)
 	blkfill(ekf, Qxyz, 2);
 	blkfill(ekf, Qb,   3);
 
-	// initial covariances of state noise, measurement noise
+	// initial covariances of state noise, measurement noise (how to estimate)
 	number_t P0 = 10;		//state noise
 	number_t R0 = 36;		//measurament noise
 
@@ -72,20 +72,17 @@ static void init(ekf_t * ekf)
 	}
 
 	// initial position
-	ekf->x[0] = (number_t)-2.168816181271560e+006;
-	// ekf->x[0] = (number_t)-1.168816181271560e+006;
+	ekf->x[0] =  (number_t)-2.168816181271560e+006;
 	ekf->x[2] =  (number_t)4.386648549091666e+006;
 	ekf->x[4] =  (number_t)4.077161596428751e+006;
 
-	// initial velocity (zeroed ?)
+	// initial zeroed velocity (zeroed ?)
 	ekf->x[1] = (number_t)0;
 	ekf->x[3] = (number_t)0;
 	ekf->x[5] = (number_t)0;
-	//Assumindo que a porra do sistema não tem velocidade, tem é que ficar parado(?)
-	//colocando alguma velocidade inicial pra dar uma graça nisso
-	// ekf->x[1] = (number_t)1e+005;
-	// ekf->x[3] = (number_t)-2e+005;
-	// ekf->x[5] = (number_t)3e+005;
+	// Assuming some initial velocity in this case (?)
+
+	//clock bias/drift (?)
 
 	// clock bias
 	ekf->x[6] = (number_t)3.575261153706439e+006;
@@ -213,7 +210,7 @@ int main(int argc, char ** argv)
 
 	dim_t j, k;
 	status_t chol_status = 0;
-	bool_t first_iter = false;
+	//bool_t first_iter = false;
 	//External loop for profiling only
 	// while(reps--){
 	// Loop till no more data
@@ -227,8 +224,8 @@ int main(int argc, char ** argv)
 
 		model(&ekf, SV_Pos);
 
-		first_iter = j==0;
-		chol_status = ekf_step_op(&ekf, SV_Rho,first_iter,true);	//Observation matrix always change
+		//first_iter = j==0;
+		chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
 		if(chol_status == ERROR){
 			printf("Cholesky inversion failed on step %d \n",j);
 		}
