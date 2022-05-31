@@ -152,21 +152,6 @@ static void mulmats(const number_t *__restrict__ a, const number_t *__restrict__
 		}
 }
 
-#if 0
-static void mulvec(const number_t *__restrict__ a, const  number_t *__restrict__ x, number_t *__restrict__ y, const dim_t m, const dim_t n)
-{
-	dim_t i, j;
-	number_t acc;
-
-	for(i=0; i<m; ++i) {
-		acc = 0;
-		for(j=0; j<n; ++j)
-			acc += x[j] * a[i*n+j];
-		y[i] = acc;
-	}
-}
-#endif
-
 static void macvec(const number_t *__restrict__ a, const  number_t *__restrict__ x, number_t *__restrict__ y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
@@ -200,20 +185,6 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 			a[i*n+j] += b[i*n+j];
 }
 
-/* A <- (A+B)/2*/
-#if 0
-static void mean(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t m, const dim_t n)
-{
-	dim_t i,j;
-
-	for(i=0; i<m; ++i)
-		for(j=0; j<n; ++j){
-			a[i*n+j] = (a[i*n+j] + b[i*n+j])*0.5f;	//for floats
-			//a[i*n+j] = (a[i*n+j] + b[i*n+j])/2;	//-O1
-		}
-}
-#endif
-
 /* A <- (A + A^T)/2*/
 static void covadjust(number_t *__restrict__ a, const dim_t n) //square mat.
 {
@@ -237,17 +208,6 @@ static void copyvec(number_t *__restrict__ a, const number_t *__restrict__ b, co
 		a[j] = b[j];
 }
 
-#if 0
-/* C <- A + B */
-static void add(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t n)
-{
-	int j;
-
-	for(j=0; j<n; ++j)
-		c[j] = a[j] + b[j];
-}
-#endif
-
 /* C <- A - B */
 static void sub(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t n)
 {
@@ -256,17 +216,6 @@ static void sub(const number_t *__restrict__ a, const number_t *__restrict__ b, 
 	for(j=0; j<n; ++j)
 		c[j] = a[j] - b[j];
 }
-
-#if 0
-static void negate(number_t *__restrict__ a, const dim_t m, const dim_t n)
-{
-	dim_t i, j;
-
-	for(i=0; i<m; ++i)
-		for(j=0; j<n; ++j)
-		a[i*n+j] = -a[i*n+j];
-}
-#endif
 
 static void mat_addeye(number_t *__restrict__ a, const dim_t n)
 {
