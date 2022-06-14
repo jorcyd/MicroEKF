@@ -6,7 +6,7 @@
  * MIT License
  */
 
-#include <math.h>
+// #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "tiny_ekf.h"
@@ -19,6 +19,20 @@
 
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
+
+/* 	Quick and dirty fast-float-sqrt 
+	https://bits.stephan-brumme.com/squareRoot.html */
+static inline float fast_sqrtf(float x) {
+	unsigned int i = *(unsigned int*) &x;
+	// adjust bias
+	i  += 127 << 23;
+	// approximation of square root
+	i >>= 1;
+	return *(float*) &i;
+}
+
+//TODO: Fast int square-root
+//https://stackoverflow.com/questions/31117497/fastest-integer-square-root-in-the-least-amount-of-instructions
 
 static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
 	dim_t i,j,k;
@@ -34,7 +48,7 @@ static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, cons
 				if (acc <= (number_t)0) {
 					return ERROR; /* error */
 				}
-				p[i] = sqrtf(acc);
+				p[i] = fast_sqrtf(acc);
 			}
 			else {
 				a[j*n+i] = acc / p[i];
@@ -51,7 +65,8 @@ static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ 
 	for (i = 0; i < n; i++) 
 		for (j = 0; j < n; j++) 
 			a[i*n+j] = A[i*n+j];
-	if (choldc1(a, p, n)) return ERROR;
+	if (choldc1(a, p, n) == ERROR)
+		return ERROR;
 	for (i = 0; i < n; i++) {
 		a[i*n+i] = 1 / p[i];
 		for (j = i + 1; j < n; j++) {
@@ -71,7 +86,8 @@ static status_t cholsl(const number_t *__restrict__ A, number_t *__restrict__ a,
 {
 	dim_t i,j,k;
 	number_t acc;
-	if (choldcsl(A,a,p,n)) return ERROR;
+	if (choldcsl(A,a,p,n) == ERROR)
+		return ERROR;
 	for (i = 0; i < n; i++) {
 		for (j = i + 1; j < n; j++) {
 			a[i*n+j] = (number_t)0;
