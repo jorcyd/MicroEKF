@@ -327,7 +327,7 @@ status_t ekf_step(const void * v, const number_t * z)
 	/* Predict : Update state vector beforehand in case Kalman gain fails to compute */
 	copyvec(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
  
- 	/* Predict : Predicted (a priori) estimate covariance */
+	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
 	transpose(ekf.F, ekf.Ft, n, n);						//F^T_{k-1}
 	mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);			//tmp0 = F_{k-1}*P_{k-1}
@@ -341,7 +341,7 @@ status_t ekf_step(const void * v, const number_t * z)
 	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
 	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
 	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
-	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m)) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = ?
+	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = ?
 	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
 
 	/* Update : Innovation or measurement pre-fit residual */
@@ -357,9 +357,8 @@ status_t ekf_step(const void * v, const number_t * z)
 
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
 	/* P_k =( P_k + P_k^T)/2*/
+	/* TODO: Should Joseph stabilized form be implemented instead of this hacky updates ? http://www.anuncommonlab.com/articles/how-kalman-filters-work/part2.html */
 	covadjust(ekf.P,n);
-	// transpose(ekf.P, ekf.tmp0, n, n);
-	// mean(ekf.P, ekf.tmp0, n, n);
 
 	/* success */
 	return SUCCESS;
