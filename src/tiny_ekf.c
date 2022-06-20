@@ -311,11 +311,11 @@ void ekf_init(const void * v, const dim_t n, const dim_t m)
 	zeros(ekf.H, m, n);
 }
 
-#define MAX_KALMAN_UPDATES 1
+//Both F and H matrices can be dependent upon the estimated state vector. (The ekf step must be looped outside this function)
+//#define MAX_KALMAN_UPDATES 1
 /*z = State vector */
 status_t ekf_step(const void * v, const number_t * z)
 {
-	dim_t iter = 0;
 	/* unpack incoming structure */
 	dim_t * ptr = (dim_t *)v;
 	dim_t n = *ptr;
@@ -325,6 +325,9 @@ status_t ekf_step(const void * v, const number_t * z)
 	unpacked_ekf_t ekf;
 	unpack(v, &ekf, n, m); 
  
+	/* Pre-Predict : Update state vector beforehand in case Kalman gain fails to compute */
+	copyvec(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
+
 	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
 	transpose(ekf.F, ekf.Ft, n, n);						//F^T_{k-1}
@@ -332,28 +335,20 @@ status_t ekf_step(const void * v, const number_t * z)
 	mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);			//P_k = tmp0*F^T_{k-1}
 	accum(ekf.Pp, ekf.Q, n, n);							//P_k += Q_{k-1}
 
-	/* The main update loop can be executed multiple times for a more accurate estimate */
-	do{
-		/* Predict : Update state vector beforehand in case Kalman gain fails to compute */
-		copyvec(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
+	/* Update : Optimal Kalman gain */
+	/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
+	transpose(ekf.H, ekf.Ht, m, n);						//H^T_k
+	mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);			//tmp1 = P_k*H^T_k
+	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
+	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
+	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
+	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = ?
+	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
 
-		/* Update : Optimal Kalman gain */
-		/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-		transpose(ekf.H, ekf.Ht, m, n);						//H^T_k
-		mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);			//tmp1 = P_k*H^T_k
-		mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
-		mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
-		accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
-		if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = ?
-		mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
-
-		/* Update : Innovation or measurement pre-fit residual */
-		/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
-		sub(z, ekf.hx, ekf.tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
-		macvec(ekf.G, ekf.tmp5, ekf.x, n, m);				//\hat{x}_k += G_k*tmp5
-
-		iter++;
-	} while (iter < MAX_KALMAN_UPDATES);
+	/* Update : Innovation or measurement pre-fit residual */
+	/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
+	sub(z, ekf.hx, ekf.tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
+	macvec(ekf.G, ekf.tmp5, ekf.x, n, m);				//\hat{x}_k += G_k*tmp5
 
 	/* Update : Updated (a posteriori) estimate covariance */
 	/* P_k = (I - G_k H_k) P_k */
