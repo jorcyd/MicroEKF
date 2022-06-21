@@ -91,16 +91,17 @@ static void init(ekf_t * ekf)
 	ekf->x[7] = (number_t)4.549246345845814e+001;
 }
 
-//As part of the EKF both F and H matrices can change over time
-static void model(ekf_t * ekf, number_t SV[4][3])
-{ 
-	dim_t i, j;
+static void update_fx(ekf_t * ekf){
+	dim_t j;
 
 	for (j=0; j<8; j+=2) {
 		ekf->fx[j] = ekf->x[j] + T * ekf->x[j+1];
 		ekf->fx[j+1] = ekf->x[j+1];
 	}
+}
 
+static void update_F(ekf_t * ekf){
+	dim_t j;
 	for (j=0; j<8; ++j) {
 		ekf->F[j][j] = 1;
 	}
@@ -108,9 +109,13 @@ static void model(ekf_t * ekf, number_t SV[4][3])
 	for (j=0; j<4; ++j) {
 		ekf->F[2*j][2*j+1] = T;
 	}
+}
 
+static void update_H(ekf_t * ekf, number_t SV[4][3]){
+	dim_t i, j;
 	number_t dx[4][3];
 	number_t d;
+	//number_t n1,n2;
 
 	for (i=0; i<4; ++i) {
 		ekf->hx[i] = 0;
@@ -119,7 +124,10 @@ static void model(ekf_t * ekf, number_t SV[4][3])
 			dx[i][j] = d;
 			ekf->hx[i] += d*d;
 		}
+		//n1 = fast_sqrtf(ekf->hx[i]) + ekf->fx[6]; //imprecise
 		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];
+		//ekf->hx[i] = n1;
+		//printf("%f-%f\n",n1,n2);
 	}
 
 	for (i=0; i<4; ++i) {
@@ -127,7 +135,13 @@ static void model(ekf_t * ekf, number_t SV[4][3])
 			ekf->H[i][j*2]  = dx[i][j] / ekf->hx[i];
 		}
 		ekf->H[i][6] = 1;
-	}   
+	} 
+}
+
+static void model(ekf_t * ekf, number_t SV[4][3]) { 
+	update_fx(ekf);
+	update_F(ekf);
+	update_H(ekf,SV);
 }
 
 static void readline(char * line, FILE * fp)

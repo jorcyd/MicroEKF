@@ -21,13 +21,22 @@
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
 /* 	Quick and dirty fast-float-sqrt 
-	https://bits.stephan-brumme.com/squareRoot.html */
+	https://bits.stephan-brumme.com/squareRoot.html 
+	https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt */
+#if 0
 static inline float fast_sqrtf(float x) {
 	unsigned int i = *(unsigned int*) &x;
 	// adjust bias
 	i  += 127 << 23;
 	// approximation of square root
 	i >>= 1;
+	return *(float*) &i;
+}
+#endif
+
+static inline float fast_sqrtf(float x) {
+	unsigned int i = *(unsigned int*) &x;
+	i = 0x1fbb4f2e + (i >> 1);
 	return *(float*) &i;
 }
 
