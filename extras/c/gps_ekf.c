@@ -43,7 +43,7 @@ static void blkfill(ekf_t * ekf, const number_t * a, int off)
 }
 
 
-static void init(ekf_t * ekf)
+static void model_init(ekf_t * ekf)
 {
 	// Set Q, see [1]
 	const number_t Sf    = 36;
@@ -57,7 +57,7 @@ static void init(ekf_t * ekf)
 	blkfill(ekf, Qxyz, 2);
 	blkfill(ekf, Qb,   3);
 
-	// initial covariances of state noise, measurement noise (how to estimate)
+	// initial covariances of state noise, measurement noise (how to estimat ?)
 	number_t P0 = 10;		//state noise
 	number_t R0 = 36;		//measurament noise
 
@@ -138,7 +138,7 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 	} 
 }
 
-static void model(ekf_t * ekf, number_t SV[4][3]) { 
+static void model_step(ekf_t * ekf, number_t SV[4][3]) { 
 	update_fx(ekf);
 	update_F(ekf);
 	update_H(ekf,SV);
@@ -192,7 +192,7 @@ int main(int argc, char ** argv)
 	ekf_init(&ekf, Nsta, Mobs);
 
 	// Do local initialization
-	init(&ekf);
+	model_init(&ekf);
 
 	// Open input data file
 	FILE * ifp = fopen("gps.csv", "r");
@@ -234,9 +234,8 @@ int main(int argc, char ** argv)
 			skipline(ifp);
 		}
 
-		readdata(ifp, SV_Pos, SV_Rho);
-
-		model(&ekf, SV_Pos);
+		readdata(ifp, SV_Pos, SV_Rho);	//SV Pos/Rho = Sensor vector ?
+		model_step(&ekf, SV_Pos);
 
 		//first_iter = j==0;
 		chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
