@@ -124,10 +124,8 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			dx[i][j] = d;
 			ekf->hx[i] += d*d;
 		}
-		//n1 = fast_sqrtf(ekf->hx[i]) + ekf->fx[6]; //imprecise
-		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];
-		//ekf->hx[i] = n1;
-		//printf("%f-%f\n",n1,n2);
+		//n1 = fast_sqrtf(ekf->hx[i]) + ekf->fx[6]; 	//imprecise
+		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];	//this requires a more precise sqrt
 	}
 
 	for (i=0; i<4; ++i) {
