@@ -6,7 +6,7 @@
  * MIT License
  */
 
-// #include <math.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "tiny_ekf.h"
@@ -22,7 +22,8 @@
 
 /* 	Quick and dirty fast-float-sqrt 
 	https://bits.stephan-brumme.com/squareRoot.html 
-	https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt */
+	https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt
+	https://bits.stephan-brumme.com/invSquareRoot.html */
 #if 0
 static inline float fast_sqrtf(float x) {
 	unsigned int i = *(unsigned int*) &x;
@@ -32,12 +33,24 @@ static inline float fast_sqrtf(float x) {
 	i >>= 1;
 	return *(float*) &i;
 }
-#endif
+
 
 static inline float fast_sqrtf(float x) {
 	unsigned int i = *(unsigned int*) &x;
 	i = 0x1fbb4f2e + (i >> 1);
 	return *(float*) &i;
+}
+#endif
+
+float fast_rsqrtf(float x){	//1/sqrt(x)
+	// for Newton iteration
+	float xHalf = 0.5f*x;
+	// approximation with empirically found "magic number"
+	unsigned int *i = (unsigned int*) &x;
+	*i = 0x5F375A86 - (*i>>1);
+	// one Newton iteration, repeating further improves precision
+	return x * (1.5f - xHalf*x*x);
+	//return x;
 }
 
 //TODO: Fast int square-root
@@ -57,10 +70,10 @@ static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, cons
 				if (acc <= (number_t)0) {
 					return ERROR; /* error */
 				}
-				p[i] = fast_sqrtf(acc);
+				p[i] = fast_rsqrtf(acc);	//1/sqrt(acc)
 			}
 			else {
-				a[j*n+i] = acc / p[i];
+				a[j*n+i] = acc * p[i];
 			}
 		}
 	}
@@ -77,13 +90,13 @@ static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ 
 	if (choldc1(a, p, n) == ERROR)
 		return ERROR;
 	for (i = 0; i < n; i++) {
-		a[i*n+i] = 1 / p[i];
+		a[i*n+i] = 1 * p[i];
 		for (j = i + 1; j < n; j++) {
 			acc = (number_t)0;
 			for (k = i; k < j; k++) {
 				acc -= a[j*n+k] * a[k*n+i];
 			}
-			a[j*n+i] = acc / p[j];
+			a[j*n+i] = acc * p[j];
 		}
 	}
 

@@ -83,10 +83,10 @@ static void model_init(ekf_t * ekf)
 	// Assuming some initial velocity in this case (?)
 
 	//clock bias/drift (?)
+	//
 
 	// clock bias
 	ekf->x[6] = (number_t)3.575261153706439e+006;
-
 	// clock drift
 	ekf->x[7] = (number_t)4.549246345845814e+001;
 }
@@ -115,17 +115,16 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 	dim_t i, j;
 	number_t dx[4][3];
 	number_t d;
-	//number_t n1,n2;
+	number_t hx;
 
 	for (i=0; i<4; ++i) {
-		ekf->hx[i] = 0;
+		hx = 0;
 		for (j=0; j<3; ++j) {
 			d = ekf->fx[j*2] - SV[i][j];
 			dx[i][j] = d;
-			ekf->hx[i] += d*d;
+			hx += d*d;
 		}
-		//n1 = fast_sqrtf(ekf->hx[i]) + ekf->fx[6]; 	//imprecise
-		ekf->hx[i] = sqrtf(ekf->hx[i]) + ekf->fx[6];	//this requires a more precise sqrt
+		ekf->hx[i] = sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt
 	}
 
 	for (i=0; i<4; ++i) {
