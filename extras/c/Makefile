@@ -34,5 +34,6 @@ clean:
 #emcc -Wall -O0 -g -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv -Wno-unused-function
 #emcc -Wall -O0 -g -Wdouble-promotion -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv
 #emcc -Wall -O0 -g -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv
+#emcc -Wall -O0 -g -pg -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv
 #clean_emcc:
 #	rm -f gps_ekf.html gps_ekf.js gps_ekf.wasm

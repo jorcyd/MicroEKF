@@ -6,7 +6,7 @@
  * MIT License
  */
 
-#include <math.h>
+// #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "tiny_ekf.h"
@@ -42,12 +42,15 @@ static inline float fast_sqrtf(float x) {
 }
 #endif
 
-float fast_rsqrtf(float x){	//1/sqrt(x)
+//https://github.com/hcs0/Hackers-Delight/blob/master/rsqrt.c.txt
+//plenty of variations.
+static inline float fast_rsqrtf(float x){	//1/sqrt(x)
 	// for Newton iteration
 	float xHalf = 0.5f*x;
 	// approximation with empirically found "magic number"
 	unsigned int *i = (unsigned int*) &x;
-	*i = 0x5F375A86 - (*i>>1);
+	//*i = 0x5F375A86 - (*i>>1);
+ 	*i = 0x5f37599e - (*i>>1); 	//The constant 0x5f37599e makes the relative error range from 0 to -0.00000463.
 	// one Newton iteration, repeating further improves precision
 	return x * (1.5f - xHalf*x*x);
 	//return x;
@@ -70,7 +73,7 @@ static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, cons
 				if (acc <= (number_t)0) {
 					return ERROR; /* error */
 				}
-				p[i] = fast_rsqrtf(acc);	//1/sqrt(acc)
+				p[i] = fast_rsqrtf(acc);	//1.0f/sqrtf(acc);
 			}
 			else {
 				a[j*n+i] = acc * p[i];

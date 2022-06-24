@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <strings.h>
-//#include <math.h>
+// #include <math.h>
 
 #include "tinyekf_config.h"		//Especificação da estrutura do EKF local
 #include "tiny_ekf.h"
@@ -114,9 +114,9 @@ static void update_F(ekf_t * ekf){
 static inline float fast_sqrtf(float x0) {
 	union {int ix; float x;} c;
 
-	c.x = x0;                      // x can be viewed as int.
-	c.ix = 0x1fbb67a8 + (c.ix >> 1); // Initial guess.
-	c.x = 0.5f*(c.x + x0/c.x);         // Newton step.
+	c.x = x0;                      		// x can be viewed as int.
+	c.ix = 0x1fbb67a8 + (c.ix >> 1); 	// Initial guess.
+	c.x = 0.5f*(c.x + x0/c.x);         	// Newton step.
 	c.x = 0.5f*(c.x + x0/c.x);  		//2nd iter (otherwise the estimates would suffer)
 	return c.x;
 }
@@ -135,6 +135,7 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			hx += d*d;
 		}
 		ekf->hx[i] = fast_sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
+		//ekf->hx[i] = sqrtf(hx) + ekf->fx[6];
 	}
 
 	for (i=0; i<4; ++i) {
