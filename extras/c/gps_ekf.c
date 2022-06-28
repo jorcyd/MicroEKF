@@ -1,9 +1,38 @@
 /* gps_ekf: TinyEKF test case using You Chong's GPS example:
  * 
- *   http://www.mathworks.com/matlabcentral/fileexchange/31487-extended-kalman-filter-ekf--for-gps
+ * http://www.mathworks.com/matlabcentral/fileexchange/31487-extended-kalman-filter-ekf--for-gps
+ * https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/31487/versions/6/previews/EKF/GPS_EKF.m/index.html
+ *
+ * Example:
  * 
  * Reads file gps.csv of satellite data and writes file ekf.csv of mean-subtracted estimated positions.
  *
+ * Kalman filter for GPS positioning
+ * This file provide an example of using the Extended_KF function with the 
+ * the application of GPS navigation. The pseudorange and satellite position
+ * of a GPS receiver at fixed location for a period of 25 seconds is
+ * provided. Least squares and Extended KF are used for this task.
+ *
+ * The following is a brief illustration of the principles of GPS. For more
+ * information see reference [2].
+ * The Global Positioning System(GPS) is a satellite-based navigation system
+ * that provides a user with proper equipment access to positioning
+ * information. The most commonly used approaches for GPS positioning are
+ * the Iterative Least Square(ILS) and the Kalman filtering(KF) methods. 
+ * Both of them is based on the pseudorange equation:
+ *                rho = || Xs - X || + b + v
+ * in which Xs and X represent the position of the satellite and
+ * receiver, respectively, and || Xs - X || represents the distance between 
+ * them. b represents the clock bias of receiver, and it need to be solved 
+ * along with the position of receiver. rho is a measurement given by 
+ * receiver for each satellites, and v is the pseudorange measurement noise 
+ * modeled as white noise.
+ * There are 4 unknowns: the coordinate of receiver position X and the clock
+ * bias b. The ILS can be used to calculate these unknowns and is
+ * implemented in this example as a comparison. In the KF solution we use
+ * the Extended Kalman filter (EKF) to deal with the nonlinearity of the
+ * pseudorange equation, and a CV model (constant velocity)[1] as the process
+ * model.
  *
  * References:
  *
@@ -17,7 +46,6 @@
  * Department of Computer Science, University of North Carolina at Chapel Hill, 2006
  *
  * Original Copyright (C) : 2015 Simon D. Levy
- *
  * MIT License
  */
 #include <stdio.h>
@@ -28,6 +56,38 @@
 
 #include "tinyekf_config.h"		//Especificação da estrutura do EKF local
 #include "tiny_ekf.h"
+
+// https://stackoverflow.com/questions/31031223/fast-approximate-float-division
+static inline float inv_fast(float x) {
+	union { float f; int i; } v;
+	float w, sx;
+
+	sx = (x < 0) ? -1:1;
+	x = sx * x;
+
+	v.i = (int)(0x7EF127EA - *(uint32_t *)&x);
+	w = x * v.f;
+
+	// Efficient Iterative Approximation Improvement in horner polynomial form.
+	v.f = v.f * (2 - w);     // Single iteration, Err = -3.36e-3 * 2^(-flr(log2(x)))
+	// v.f = v.f * ( 4 + w * (-6 + w * (4 - w)));  // Second iteration, Err = -1.13e-5 * 2^(-flr(log2(x)))
+	// v.f = v.f * (8 + w * (-28 + w * (56 + w * (-70 + w *(56 + w * (-28 + w * (8 - w)))))));  // Third Iteration, Err = +-6.8e-8 *  2^(-flr(log2(x)))
+
+	return v.f * sx;
+}
+
+//fast floating square root
+#ifndef _MATH_H
+static inline float sqrtf(float x0) {
+	union {int ix; float x;} c;
+
+	c.x = x0;                      		// x can be viewed as int.
+	c.ix = 0x1fbb67a8 + (c.ix >> 1); 	// Initial guess.
+	c.x = 0.5f*(c.x + x0/c.x);         	// Newton step.
+	c.x = 0.5f*(c.x + x0/c.x);  		// 2nd iter (otherwise the estimates would suffer)
+	return c.x;
+}
+#endif
 
 // positioning interval
 static const number_t T = 1;
@@ -82,9 +142,6 @@ static void model_init(ekf_t * ekf)
 	ekf->x[5] = (number_t)0;
 	// Assuming some initial velocity in this case (?)
 
-	//clock bias/drift (?)
-	//
-
 	// clock bias
 	ekf->x[6] = (number_t)3.575261153706439e+006;
 	// clock drift
@@ -111,16 +168,6 @@ static void update_F(ekf_t * ekf){
 	}
 }
 
-static inline float fast_sqrtf(float x0) {
-	union {int ix; float x;} c;
-
-	c.x = x0;                      		// x can be viewed as int.
-	c.ix = 0x1fbb67a8 + (c.ix >> 1); 	// Initial guess.
-	c.x = 0.5f*(c.x + x0/c.x);         	// Newton step.
-	c.x = 0.5f*(c.x + x0/c.x);  		//2nd iter (otherwise the estimates would suffer)
-	return c.x;
-}
-
 static void update_H(ekf_t * ekf, number_t SV[4][3]){
 	dim_t i, j;
 	number_t dx[4][3];
@@ -134,13 +181,12 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			dx[i][j] = d;
 			hx += d*d;
 		}
-		ekf->hx[i] = fast_sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
-		//ekf->hx[i] = sqrtf(hx) + ekf->fx[6];
+		ekf->hx[i] = sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
 	}
 
 	for (i=0; i<4; ++i) {
 		for (j=0; j<3; ++j) {
-			ekf->H[i][j*2]  = dx[i][j] / ekf->hx[i];
+			ekf->H[i][j*2]  = dx[i][j] * inv_fast(ekf->hx[i]);
 		}
 		ekf->H[i][6] = 1;
 	} 
@@ -232,6 +278,7 @@ int main(int argc, char ** argv)
 
 	dim_t j, k;
 	status_t chol_status = 0;
+	number_t x_pos,y_pos,z_pos;
 	//bool_t first_iter = false;
 	//External loop for profiling only
 	// while(reps--){
@@ -272,14 +319,18 @@ int main(int argc, char ** argv)
 		}
 	}
 	for (k=0; k<3; ++k){
-		mean_Pos_KF[k] /= 25;
+		mean_Pos_KF[k] /= samples;
 	}
 
-
 	// Dump filtered positions minus their means
+	// Also print position minus means and velocities.
 	for (j=0; j<samples; ++j) {
-		fprintf(ofp, "%f,%f,%f\n",Pos_KF[j][0]-mean_Pos_KF[0], Pos_KF[j][1]-mean_Pos_KF[1], Pos_KF[j][2]-mean_Pos_KF[2]);
-		printf("%f %f %f / ", Pos_KF[j][0], Pos_KF[j][1], Pos_KF[j][2]);
+		x_pos = Pos_KF[j][0]-mean_Pos_KF[0];
+		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
+		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
+		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
+		printf("%f %f %f / ", x_pos,y_pos,z_pos);
+		// printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
 		printf("%f %f %f\n", Vel_KF[j][0], Vel_KF[j][1], Vel_KF[j][2]);
 	}
 	
