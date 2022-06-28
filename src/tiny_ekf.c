@@ -6,9 +6,9 @@
  * MIT License
  */
 
-// #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ekf_math.h"
 #include "tiny_ekf.h"
 
 /* 	Square root algorithm (Kalman Filter)
@@ -19,45 +19,6 @@
 
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
-
-/* 	Quick and dirty fast-float-sqrt 
-	https://bits.stephan-brumme.com/squareRoot.html 
-	https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt
-	https://bits.stephan-brumme.com/invSquareRoot.html */
-#if 0
-static inline float fast_sqrtf(float x) {
-	unsigned int i = *(unsigned int*) &x;
-	// adjust bias
-	i  += 127 << 23;
-	// approximation of square root
-	i >>= 1;
-	return *(float*) &i;
-}
-
-
-static inline float fast_sqrtf(float x) {
-	unsigned int i = *(unsigned int*) &x;
-	i = 0x1fbb4f2e + (i >> 1);
-	return *(float*) &i;
-}
-#endif
-
-//https://github.com/hcs0/Hackers-Delight/blob/master/rsqrt.c.txt
-//plenty of variations.
-static inline float fast_rsqrtf(float x){	//1/sqrt(x)
-	// for Newton iteration
-	float xHalf = 0.5f*x;
-	// approximation with empirically found "magic number"
-	unsigned int *i = (unsigned int*) &x;
-	//*i = 0x5F375A86 - (*i>>1);
- 	*i = 0x5f37599e - (*i>>1); 	//The constant 0x5f37599e makes the relative error range from 0 to -0.00000463.
-	// one Newton iteration, repeating further improves precision
-	return x * (1.5f - xHalf*x*x);
-	//return x;
-}
-
-//TODO: Fast int square-root
-//https://stackoverflow.com/questions/31117497/fastest-integer-square-root-in-the-least-amount-of-instructions
 
 static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
 	dim_t i,j,k;

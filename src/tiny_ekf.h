@@ -58,6 +58,3 @@ void ekf_init(const void * ekf, const dim_t n, const dim_t m);
 	* @return 0 on success, 1 on failure caused by non-positive-definite matrix.
 	*/
 status_t ekf_step(const void * ekf, const number_t * z);
-
-//Auxiliary functions exposed
-//float fast_sqrtf(float x);
