@@ -54,7 +54,7 @@ static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ 
 	if (choldc1(a, p, n) == ERROR)
 		return ERROR;
 	for (i = 0; i < n; i++) {
-		a[i*n+i] = p[i];	//1 * p[i];
+		a[i*n+i] = p[i];
 		for (j = i + 1; j < n; j++) {
 			acc = (number_t)0;
 			for (k = i; k < j; k++) {
