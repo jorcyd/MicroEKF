@@ -52,42 +52,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <strings.h>
-// #include <math.h>
-
-#include "tinyekf_config.h"		//Especificação da estrutura do EKF local
+#include "ekf_math.h"
+#include "tinyekf_config.h"		//Local ekf structure.
 #include "tiny_ekf.h"
-
-// https://stackoverflow.com/questions/31031223/fast-approximate-float-division
-static inline float inv_fast(float x) {
-	union { float f; int i; } v;
-	float w, sx;
-
-	sx = (x < 0) ? -1:1;
-	x = sx * x;
-
-	v.i = (int)(0x7EF127EA - *(uint32_t *)&x);
-	w = x * v.f;
-
-	// Efficient Iterative Approximation Improvement in horner polynomial form.
-	v.f = v.f * (2 - w);     // Single iteration, Err = -3.36e-3 * 2^(-flr(log2(x)))
-	// v.f = v.f * ( 4 + w * (-6 + w * (4 - w)));  // Second iteration, Err = -1.13e-5 * 2^(-flr(log2(x)))
-	// v.f = v.f * (8 + w * (-28 + w * (56 + w * (-70 + w *(56 + w * (-28 + w * (8 - w)))))));  // Third Iteration, Err = +-6.8e-8 *  2^(-flr(log2(x)))
-
-	return v.f * sx;
-}
-
-//fast floating square root
-#ifndef _MATH_H
-static inline float sqrtf(float x0) {
-	union {int ix; float x;} c;
-
-	c.x = x0;                      		// x can be viewed as int.
-	c.ix = 0x1fbb67a8 + (c.ix >> 1); 	// Initial guess.
-	c.x = 0.5f*(c.x + x0/c.x);         	// Newton step.
-	c.x = 0.5f*(c.x + x0/c.x);  		// 2nd iter (otherwise the estimates would suffer)
-	return c.x;
-}
-#endif
 
 // positioning interval
 static const number_t T = 1;
@@ -181,12 +148,12 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			dx[i][j] = d;
 			hx += d*d;
 		}
-		ekf->hx[i] = sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
+		ekf->hx[i] = fast_sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
 	}
 
 	for (i=0; i<4; ++i) {
 		for (j=0; j<3; ++j) {
-			ekf->H[i][j*2]  = dx[i][j] * inv_fast(ekf->hx[i]);
+			ekf->H[i][j*2]  = dx[i][j] * fast_inv(ekf->hx[i]);
 		}
 		ekf->H[i][6] = 1;
 	} 

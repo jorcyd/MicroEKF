@@ -1,12 +1,8 @@
 #include "ekf_math.h"
-//#include <math.h>
 
-//#ifndef _MATH_H
-//#endif
-
+#ifdef EMBEDDED	//if set to run on embedded targets with light fp support.
 
 //https://github.com/hcs0/Hackers-Delight/blob/master/rsqrt.c.txt
-//plenty of variations.
 inline float fast_rsqrtf(float x){	//1/sqrt(x)
 	// for Newton iteration
 	float xHalf = 0.5f*x;
@@ -34,7 +30,6 @@ inline float fast_inv(float x) {
 	v.f = v.f * (2 - w);     // Single iteration, Err = -3.36e-3 * 2^(-flr(log2(x)))
 	// v.f = v.f * ( 4 + w * (-6 + w * (4 - w)));  // Second iteration, Err = -1.13e-5 * 2^(-flr(log2(x)))
 	// v.f = v.f * (8 + w * (-28 + w * (56 + w * (-70 + w *(56 + w * (-28 + w * (8 - w)))))));  // Third Iteration, Err = +-6.8e-8 *  2^(-flr(log2(x)))
-
 	return v.f;//* sx;
 }
 
@@ -69,4 +64,21 @@ static inline float fast_sqrtf(float x) {
 	i = 0x1fbb4f2e + (i >> 1);
 	return *(float*) &i;
 }
+#endif
+
+#else
+
+#include <math.h>
+inline float fast_rsqrtf(float x){
+	return(1/sqrtf(x));
+}
+
+inline float fast_inv(float x) {
+	return(1/x);
+}
+
+inline float fast_sqrtf(float x0) {
+	return(sqrtf(x0));
+}
+
 #endif
