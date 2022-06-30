@@ -226,8 +226,10 @@ int main(int argc, char ** argv)
 	skipline(ifp);
 
 	// Make a place to store the data from the file and the output of the EKF
-	size_t samples = 250;
+	//size_t samples = 250;
 	//size_t reps = 1000;
+	size_t samples = 600;
+	size_t samples_in_file = 60;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
 	number_t Pos_KF[samples][3];
@@ -251,7 +253,7 @@ int main(int argc, char ** argv)
 	// while(reps--){
 	// Loop till no more data
 	for (j=0; j<samples; ++j) {		
-		if(j>=25 && j%25==0){
+		if(j>=samples_in_file && j%samples_in_file==0){
 			rewind(ifp);
 			skipline(ifp);
 		}
@@ -297,7 +299,7 @@ int main(int argc, char ** argv)
 		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
 		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
 		printf("%f %f %f / ", x_pos,y_pos,z_pos);
-		// printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
+		//printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
 		printf("%f %f %f\n", Vel_KF[j][0], Vel_KF[j][1], Vel_KF[j][2]);
 	}
 	
