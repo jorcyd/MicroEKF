@@ -20,6 +20,10 @@
 /*	Cholesky-decomposition matrix-inversion code, adapated from
 	http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
+/*	Gauss-Jordan Matrix inversion code adapted from
+	https://rosettacode.org/wiki/Gauss-Jordan_matrix_inversion#C */
+
+__attribute__((__used__))
 static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
 	dim_t i,j,k;
 	number_t acc;
@@ -45,6 +49,7 @@ static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, cons
 	return SUCCESS; /* success */
 }
 
+__attribute__((__used__))
 static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) 
 {
 	dim_t i,j,k; number_t acc;
@@ -67,7 +72,7 @@ static status_t choldcsl(const number_t *__restrict__ A, number_t *__restrict__ 
 	return SUCCESS; /* success */
 }
 
-
+__attribute__((__used__))
 static status_t cholsl(const number_t *__restrict__ A, number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) 
 {
 	dim_t i,j,k;
@@ -100,6 +105,80 @@ static status_t cholsl(const number_t *__restrict__ A, number_t *__restrict__ a,
 	}
 
 	return SUCCESS; /* success */
+}
+
+__attribute__((__used__))
+static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const dim_t n) 
+{
+	dim_t i, j, k;
+	number_t f;
+
+	#ifdef PIVOT
+	dim_t p;
+	numbe_t g,tol;
+	#endif
+
+	 /* Function Body */
+	if (n < 1) return ERROR;
+	
+	#ifdef PIVOT
+	f = 0;  /* Frobenius norm of A */
+	for (i = 0; i < n; ++i) {
+		for (j = 0; j < n; ++j) {
+			g = A[j+i*n];
+			f += g * g;
+		}
+	}
+	f = fast_sqrtf(f);
+	tol = f * 2.2204460492503131e-016f;
+	#endif
+
+	for (i = 0; i < n; ++i) {  /* Set a to identity matrix. */
+		for (j = 0; j < n; ++j) {
+			a[j+i*n] = (i == j) ? 1:0;
+		}
+	}
+	
+	for (k = 0; k < n; ++k) {  /* Main loop */
+		#ifdef PIVOT
+		f = fast_fabsf(A[k+k*n]);  /* Find pivot. */
+		p = k;
+		for (i = k+1; i < n; ++i) {
+			g = fast_fabsf(A[k+i*n]);
+			if (g > f) {
+				f = g;
+				p = i;
+			}
+		}
+		if (f < tol) return ERROR;  /* Matrix is singular. */
+		if (p != k) {  /* Swap rows. */
+			for (j = k; j < n; ++j) {
+				f = A[j+k*n];
+				A[j+k*n] = A[j+p*n];
+				A[j+p*n] = f;
+			}
+			for (j = 0; j < n; ++j) {
+				f = a[j+k*n];
+				a[j+k*n] = a[j+p*n];
+				a[j+p*n] = f;
+			}
+		}
+		#else
+		if (A[k+k*n]==0) return ERROR;   /* Matrix is singular. */
+		#endif
+
+		//f = 1/A[k+k*n];  /* Scale row so pivot is 1. */
+		f = fast_inv(A[k+k*n]);
+		for (j = k; j < n; ++j) A[j+k*n] *= f;
+		for (j = 0; j < n; ++j) a[j+k*n] *= f;
+		for (i = 0; i < n; ++i) {  /* Subtract to get zeros. */
+			if (i == k) continue;
+			f = A[k+i*n];
+			for (j = k; j < n; ++j) A[j+i*n] -= A[j+k*n] * f;
+			for (j = 0; j < n; ++j) a[j+i*n] -= a[j+k*n] * f;
+		}
+	}
+	return SUCCESS;
 }
 
 #ifdef __DEBUG__
@@ -328,7 +407,8 @@ status_t ekf_step(const void * v, const number_t * z)
 	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
 	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
 	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
-	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = ?
+	//if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
+	if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
 	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
 
 	/* Update : Innovation or measurement pre-fit residual */

@@ -6,7 +6,10 @@
  * https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt
  * https://bits.stephan-brumme.com/invSquareRoot.html 
  * https://stackoverflow.com/questions/31117497/fastest-integer-square-root-in-the-least-amount-of-instructions
- * https://stackoverflow.com/questions/31031223/fast-approximate-float-division	*/
+ * https://stackoverflow.com/questions/31031223/fast-approximate-float-division	
+ * https://stackoverflow.com/questions/4930307/fastest-way-to-get-the-integer-part-of-sqrtn
+ * https://stackoverflow.com/questions/23474796/is-there-a-fast-fabsf-replacement-for-float-in-c
+ */
 
 #ifdef EMBEDDED	//if set to run on embedded targets with basic fp support.
 
@@ -16,7 +19,7 @@ inline float fast_rsqrtf(float x){	//1/sqrt(x)
 	// approximation with empirically found "magic number"
 	unsigned int *i = (unsigned int*) &x;
 	//*i = 0x5F375A86 - (*i>>1);
- 	*i = 0x5f37599e - (*i>>1); 	//The constant 0x5f37599e makes the relative error range from 0 to -0.00000463.
+	*i = 0x5f37599e - (*i>>1); 	//The constant 0x5f37599e makes the relative error range from 0 to -0.00000463.
 	// one Newton iteration, repeating further improves precision
 	return x * (1.5f - xHalf*x*x);
 	//return x;
@@ -49,6 +52,11 @@ inline float fast_sqrtf(float x0) {
 	return c.x;
 }
 
+inline float fast_fabsf(float i){
+	(*(unsigned int *)&i) &= 0x7fffffff;
+    return i;
+}
+
 #else
 
 #include <math.h>
@@ -64,4 +72,29 @@ inline float fast_sqrtf(float x0) {
 	return(sqrtf(x0));
 }
 
+inline float fast_fabsf(float x){
+	return(fabsf(x));
+}
+
 #endif
+
+unsigned int fast_isqrt(unsigned int a) {
+	unsigned int rem = 0;
+	unsigned int root = 0;
+	int i;
+
+	for (i = 0; i < 16; i++) {
+		root <<= 1;
+		rem <<= 2;
+		rem += a >> 30;
+		a <<= 2;
+
+		if (root < rem) {
+			root++;
+			rem -= root;
+			root++;
+		}
+	}
+
+	return (root >> 1);
+}
