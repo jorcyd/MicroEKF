@@ -115,7 +115,7 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 
 	#ifdef PIVOT
 	dim_t p;
-	numbe_t g,tol;
+	number_t g,tol;
 	#endif
 
 	 /* Function Body */
@@ -407,8 +407,8 @@ status_t ekf_step(const void * v, const number_t * z)
 	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
 	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
 	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
-	//if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
-	if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
+	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
+	//if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
 	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
 
 	/* Update : Innovation or measurement pre-fit residual */
