@@ -267,7 +267,7 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 }
 
 /* A <- (A + A^T)/2*/
-static void covadjust(number_t *__restrict__ a, const dim_t n) //square mat.
+static void symmetrize(number_t *__restrict__ a, const dim_t n) //square mat.
 {
 	dim_t i,j;
 	number_t mean;
@@ -425,7 +425,7 @@ status_t ekf_step(const void * v, const number_t * z)
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
 	/* P_k =( P_k + P_k^T)/2*/
 	/* TODO: Should Joseph stabilized form be implemented instead of this hacky updates ? http://www.anuncommonlab.com/articles/how-kalman-filters-work/part2.html */
-	covadjust(ekf.P,n);
+	symmetrize(ekf.P,n);
 
 	/* success */
 	return SUCCESS;
