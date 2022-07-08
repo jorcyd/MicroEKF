@@ -341,6 +341,8 @@ static void unpack(const void *__restrict__ v, unpacked_ekf_t * ekf, const dim_t
 	ekf->tmp4 = dptr;
 	dptr += m*m;
 	ekf->tmp5 = dptr;
+	dptr += m;
+	ekf->tmp6 = dptr;
 }
 
 void ekf_init(const void * v, const dim_t n, const dim_t m)

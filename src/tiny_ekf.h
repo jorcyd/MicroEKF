@@ -45,6 +45,7 @@
 				number_t tmp3[M][M];
 				number_t tmp4[M][M];
 				number_t tmp5[M]; 
+				number_t tmp6[N][N];
 		* </pre>
 	*/
 

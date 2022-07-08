@@ -47,5 +47,6 @@ typedef struct __attribute__((packed)){
 	number_t tmp3[Mobs][Mobs];
 	number_t tmp4[Mobs][Mobs];
 	number_t tmp5[Mobs]; 
+	number_t tmp6[Nsta][Nsta];
 
 } ekf_t;

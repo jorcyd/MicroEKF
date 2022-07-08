@@ -29,6 +29,7 @@ typedef struct __attribute__((packed)){
 	number_t * tmp2;
 	number_t * tmp3;
 	number_t * tmp4;
-	number_t * tmp5; 
+	number_t * tmp5;
+	number_t * tmp6; 
 
 } unpacked_ekf_t;
