@@ -11,8 +11,9 @@
 #include "ekf_math.h"
 #include "tiny_ekf.h"
 
-/* 	Square root algorithm (Kalman Filter)
-	https://stats.stackexchange.com/questions/254749/square-root-algorithm-kalman-filter */
+/* 	Joseph Stabilized Form
+	https://stats.stackexchange.com/questions/254749/square-root-algorithm-kalman-filter 
+	http://www.anuncommonlab.com/articles/how-kalman-filters-work/part2.html */
 
 /*	Writing Cache Friendly Code - Comparison of Matrix Multiplication
 	https://courses.engr.illinois.edu/cs232/sp2009/lectures/X18.pdf */
@@ -219,20 +220,6 @@ static void mulmat(const number_t *__restrict__ a, const number_t *__restrict__ 
 		}
 }
 
-//C <- -A * B
-static void mulmats(const number_t *__restrict__ a, const number_t *__restrict__ b, number_t *__restrict__ c, const dim_t arows, const dim_t acols, const dim_t bcols)
-{
-	dim_t i,j,l;
-	number_t acc;
-	for(i=0; i<arows; ++i)
-		for(j=0; j<bcols; ++j) {
-			acc = 0;
-			for(l=0; l<acols; ++l)
-				acc -= a[i*acols+l] * b[l*bcols+j];
-			c[i*bcols+j] = acc;
-		}
-}
-
 static void macvec(const number_t *__restrict__ a, const  number_t *__restrict__ x, number_t *__restrict__ y, const dim_t m, const dim_t n)
 {
 	dim_t i, j;
@@ -281,7 +268,7 @@ static void symmetrize(number_t *__restrict__ a, const dim_t n) //square mat.
 		}
 }
 
-static void copyvec(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t n)
+static void copyarray(number_t *__restrict__ a, const number_t *__restrict__ b, const dim_t n)
 {
 	dim_t j;
 
@@ -298,11 +285,12 @@ static void sub(const number_t *__restrict__ a, const number_t *__restrict__ b, 
 		c[j] = a[j] - b[j];
 }
 
-static void mat_addeye(number_t *__restrict__ a, const dim_t n)
+static void eyesub(number_t *__restrict__ a, const dim_t n)
 {
-	dim_t i;
+	dim_t i,j;
 	for (i=0; i<n; ++i)
-		a[i*n+i] += 1;
+			for(j=0; j<n; ++j)
+				a[i*n+j] = ((i==j)?1:0) - a[i*n+j];
 }
 
 /* TinyEKF code ------------------------------------------------------------------- */
@@ -391,7 +379,7 @@ status_t ekf_step(const void * v, const number_t * z)
 	unpack(v, &ekf, n, m); 
  
 	/* Pre-Predict : Update state vector beforehand in case Kalman gain fails to compute */
-	copyvec(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
+	copyarray(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
 
 	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
@@ -418,13 +406,22 @@ status_t ekf_step(const void * v, const number_t * z)
 
 	/* Update : Updated (a posteriori) estimate covariance */
 	/* P_k = (I - G_k H_k) P_k */
-	mulmats(ekf.G, ekf.H, ekf.tmp0, n, m, n);			//tmp0 = -G_k*H_k
-	mat_addeye(ekf.tmp0, n);							//tmp0 += I
+	mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);			//tmp0 = G_k*H_k
+	eyesub(ekf.tmp0, n);								//tmp0 = I - tmp0 <=> tmp0 = I - G_k*H_k
 	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k+ = tmp0*P_k
+	/* Joseph stabilized form */
+	/* P_k = (I - G_k H_k) P_k (I - G_k H_k)^T + G_k R G_k^T */
+	#if 0
+	transpose(ekf.tmp0, ekf.tmp6, n, n); 				//tmp6 = (I - G_k H_k)^T
+	mulmat(ekf.P, ekf.tmp6, ekf.tmp0, n ,n);			//tmp0 = P_k+*tmp6
+	transpose(ekf.G, ekf.tmp2, n, m);					//tmp2 = G_k^T
+	mulmat(ekf.G, ekf.R, ekf.tmp3, n, m, m);			//tmp3 = G_k*R
+	mulmat(ekf.tmp3, ekf.tmp2, ekf.Pp, n, m, n);		//P_k+ = tmp3*tmp2
+	accum(ekf.Pp, ekf.tmp0, n, n);						//P_k+ = tmp0
+	#endif
 
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
 	/* P_k =( P_k + P_k^T)/2*/
-	/* TODO: Should Joseph stabilized form be implemented instead of this hacky updates ? http://www.anuncommonlab.com/articles/how-kalman-filters-work/part2.html */
 	symmetrize(ekf.P,n);
 
 	/* success */
