@@ -340,10 +340,9 @@ status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	mulmat(ekf.P, ekf.tmp6, ekf.tmp0, n ,n, n);			//tmp0 = P_k+*tmp6
 	transpose(ekf.G, ekf.tmp2, n, m);					//tmp2 = G_k^T
 	mulmat(ekf.G, ekf.R, ekf.tmp1, n, m, m);			//tmp1 = G_k*R
-	mulmat(ekf.tmp1, ekf.tmp2, ekf.Pp, n, m, n);		//P_k+ = tmp1*tmp2
-	accum(ekf.Pp, ekf.tmp0, n, n);						//P_k+ = tmp0
+	mulmat(ekf.tmp1, ekf.tmp2, ekf.P, n, m, n);		//P_k+ = tmp1*tmp2
+	accum(ekf.P, ekf.tmp0, n, n);						//P_k+ = tmp0
 	#endif
-
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
 	/* P_k =( P_k + P_k^T)/2*/
 	symmetrize(ekf.P,n);

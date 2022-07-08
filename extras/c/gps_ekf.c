@@ -229,6 +229,7 @@ int main(int argc, char ** argv)
 	//size_t samples = 250;
 	//size_t reps = 1000;
 	size_t samples = 600;
+	//size_t samples = 2;
 	size_t samples_in_file = 60;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
