@@ -257,14 +257,17 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 static void symmetrize(number_t *__restrict__ a, const dim_t n) //square mat.
 {
 	dim_t i,j;
-	number_t mean;
+	//number_t mean;
 
 	for(i=0; i<n; ++i)
 		for(j=i+1; j<n; ++j){
+			#if 0
 			mean = (a[i*n+j] + a[j*n+i])*0.5f;	//for floats
 			//mean = (a[i*n+j] + b[j*n+i])/2;	//-O1
 			a[i*n+j] = mean;
 			a[j*n+i] = mean;
+			#endif
+			a[j*n+i] = a[i*n+j];	//hacky
 		}
 }
 
