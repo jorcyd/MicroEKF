@@ -294,7 +294,6 @@ static void eyesub(number_t *__restrict__ a, const dim_t n)
 				a[i*n+j] = ((i==j)?1:0) - a[i*n+j];
 }
 
-/* TinyEKF code ------------------------------------------------------------------- */
 /* 	Actual EKF step 
 	Both F and H matrices can be dependent upon the estimated state vector. (The ekf step must be looped outside this function)
 	z = State vector */
@@ -351,6 +350,8 @@ status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	/* success */
 	return SUCCESS;
 }
+
+/* EKF Stucts Intialization , Unpacking and Step-Call */
 
 //__attribute__((packed)) on void v
 static void unpack(const void *__restrict__ v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
@@ -457,6 +458,5 @@ status_t ekf_step(const void * v, const number_t * z)
 
 status_t ekf_step_ext(unpacked_ekf_t *ekf, const number_t * z)
 {
-	/* unpack incoming structure */ 
 	return(do_ekf_step(*ekf,z));
 }

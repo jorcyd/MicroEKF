@@ -313,12 +313,5 @@ int main(int argc, char ** argv)
 	
 	printf("Wrote file %s\n", OUTFILE);
 
-	//EMSCRIPTEN LIBS
-	// emscripten::val::global("window").call<void>(
-	// 	"offerFileAsDownload",
-	// 	string("ekf.csv"),
-	// 	string("text/csv")
-	// );
-
 	return 0;
 }
