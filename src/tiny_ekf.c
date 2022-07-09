@@ -297,7 +297,7 @@ static void eyesub(number_t *__restrict__ a, const dim_t n)
 /* 	Actual EKF step 
 	Both F and H matrices can be dependent upon the estimated state vector. (The ekf step must be looped outside this function)
 	z = State vector */
-status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
+static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 {
 	dim_t m,n;
 	m = ekf.m;
