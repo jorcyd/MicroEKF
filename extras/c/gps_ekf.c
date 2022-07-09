@@ -210,7 +210,9 @@ int main(int argc, char ** argv)
 {    
 	// Do generic EKF initialization
 	ekf_t ekf;
-	ekf_init(&ekf, Nsta, Mobs);
+	unpacked_ekf_t un_ekf;
+	// ekf_init(&ekf, Nsta, Mobs);
+	ekf_init_ext(&ekf, Nsta, Mobs, &un_ekf);
 
 	// Do local initialization
 	model_init(&ekf);
@@ -249,9 +251,7 @@ int main(int argc, char ** argv)
 	dim_t j, k;
 	status_t chol_status = 0;
 	number_t x_pos,y_pos,z_pos;
-	//bool_t first_iter = false;
-	//External loop for profiling only
-	// while(reps--){
+
 	// Loop till no more data
 	for (j=0; j<samples; ++j) {		
 		if(j>=samples_in_file && j%samples_in_file==0){
@@ -263,7 +263,8 @@ int main(int argc, char ** argv)
 		model_step(&ekf, SV_Pos);
 
 		//first_iter = j==0;
-		chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
+		//chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
+		chol_status = ekf_step_ext(&un_ekf, SV_Rho);
 		if(chol_status == ERROR){
 			printf("Cholesky inversion failed on step %d \n",j);
 		}
@@ -274,12 +275,6 @@ int main(int argc, char ** argv)
 			Vel_KF[j][k] = ekf.x[2*k+1];
 		}
 	}
-	// 	rewind(ifp);
-	// 	skipline(ifp);
-	// 	ekf_init(&ekf, Nsta, Mobs);
-	// 	// Do local initialization
-	// 	init(&ekf);
-	// }
 
 	// Compute means of filtered positions
 	number_t mean_Pos_KF[3] = {0, 0, 0};

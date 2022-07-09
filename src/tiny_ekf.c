@@ -423,6 +423,24 @@ void ekf_init(const void * v, const dim_t n, const dim_t m)
 	zeros(ekf.H, m, n);
 }
 
+void ekf_init_ext(const void * v, const dim_t n, const dim_t m, unpacked_ekf_t *ekf)
+{
+	/* setting up matrices sizes */
+	ekf->m = m;
+	ekf->n = n;
+
+	/* unpack rest of incoming structure for initlization */
+	unpack(v, ekf, n, m);
+
+	/* zero-out matrices */
+	zeros(ekf->P, n, n);
+	zeros(ekf->Q, n, n);
+	zeros(ekf->R, m, m);
+	zeros(ekf->G, n, m);
+	zeros(ekf->F, n, n);
+	zeros(ekf->H, m, n);
+}
+
 status_t ekf_step(const void * v, const number_t * z)
 {
 	/* unpack incoming structure */
@@ -435,4 +453,10 @@ status_t ekf_step(const void * v, const number_t * z)
 	unpack(v, &ekf, n, m); 
  
 	return(do_ekf_step(ekf,z));
+}
+
+status_t ekf_step_ext(unpacked_ekf_t *ekf, const number_t * z)
+{
+	/* unpack incoming structure */ 
+	return(do_ekf_step(*ekf,z));
 }

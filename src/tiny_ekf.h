@@ -50,6 +50,7 @@
 	*/
 
 void ekf_init(const void * ekf, const dim_t n, const dim_t m);
+void ekf_init_ext(const void * v, const dim_t n, const dim_t m, unpacked_ekf_t *ekf);
 
 /**
 	* Runs one step of EKF prediction and update. Your code should first build a model, setting
@@ -58,4 +59,6 @@ void ekf_init(const void * ekf, const dim_t n, const dim_t m);
 	* @param z array of measurement (observation) values
 	* @return 0 on success, 1 on failure caused by non-positive-definite matrix.
 	*/
+
 status_t ekf_step(const void * ekf, const number_t * z);
+status_t ekf_step_ext(unpacked_ekf_t *ekf, const number_t * z);
