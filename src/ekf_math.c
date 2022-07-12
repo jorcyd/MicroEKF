@@ -13,7 +13,7 @@
 
 #ifdef EMBEDDED	//if set to run on embedded targets with basic fp support.
 
-inline float fast_rsqrtf(float x){	//1/sqrt(x)
+inline float ekf_rsqrtf(float x){	//1/sqrt(x)
 	// for Newton iteration
 	float xHalf = 0.5f*x;
 	// approximation with empirically found "magic number"
@@ -25,7 +25,7 @@ inline float fast_rsqrtf(float x){	//1/sqrt(x)
 	//return x;
 }
 
-inline float fast_inv(float x) {
+inline float ekf_inv(float x) {
 	union { float f; int i; } v;
 	float w;//, sx;
 
@@ -42,37 +42,36 @@ inline float fast_inv(float x) {
 	return v.f;//* sx;
 }
 
-inline float fast_sqrtf(float x0) {
+inline float ekf_sqrtf(float x0) {
 	union {int ix; float x;} c;
 
 	c.x = x0;                      			// x can be viewed as int.
 	c.ix = 0x1fbb67a8 + (c.ix >> 1); 		// Initial guess.
-	c.x = 0.5f*(c.x + x0*fast_inv(c.x));    // Newton step.
-	c.x = 0.5f*(c.x + x0*fast_inv(c.x));  // 2nd iter (required)
+	c.x = 0.5f*(c.x + x0*ekf_inv(c.x));    // Newton step.
+	c.x = 0.5f*(c.x + x0*ekf_inv(c.x));  // 2nd iter (required)
 	return c.x;
 }
 
-inline float fast_fabsf(float i){
+inline float ekf_fabsf(float i){
 	(*(unsigned int *)&i) &= 0x7fffffff;
     return i;
 }
-
 #else
 
 #include <math.h>
-inline float fast_rsqrtf(float x){
+inline float ekf_rsqrtf(float x){
 	return(1/sqrtf(x));
 }
 
-inline float fast_inv(float x) {
+inline float ekf_inv(float x) {
 	return(1/x);
 }
 
-inline float fast_sqrtf(float x0) {
+inline float ekf_sqrtf(float x0) {
 	return(sqrtf(x0));
 }
 
-inline float fast_fabsf(float x){
+inline float ekf_fabsf(float x){
 	return(fabsf(x));
 }
 

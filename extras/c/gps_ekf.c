@@ -99,9 +99,9 @@ static void model_init(ekf_t * ekf)
 	}
 
 	// initial position
-	ekf->x[0] =  (number_t)-2.168816181271560e+006;
+	ekf->x[0] =  (number_t)-2.168816181271560e+006f;
 	ekf->x[2] =  (number_t)4.386648549091666e+006;
-	ekf->x[4] =  (number_t)4.077161596428751e+006;
+	ekf->x[4] =  (number_t)4.077161596428751e+006f;
 
 	// initial zeroed velocity (zeroed ?)
 	ekf->x[1] = (number_t)0;
@@ -110,9 +110,9 @@ static void model_init(ekf_t * ekf)
 	// Assuming some initial velocity in this case (?)
 
 	// clock bias
-	ekf->x[6] = (number_t)3.575261153706439e+006;
+	ekf->x[6] = (number_t)3.575261153706439e+006f;
 	// clock drift
-	ekf->x[7] = (number_t)4.549246345845814e+001;
+	ekf->x[7] = (number_t)4.549246345845814e+001f;
 }
 
 static void update_fx(ekf_t * ekf){
@@ -148,12 +148,12 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			dx[i][j] = d;
 			hx += d*d;
 		}
-		ekf->hx[i] = fast_sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
+		ekf->hx[i] = ekf_sqrtf(hx) + ekf->fx[6];	//this requires a more precise sqrt (would diverge otherwise)
 	}
 
 	for (i=0; i<4; ++i) {
 		for (j=0; j<3; ++j) {
-			ekf->H[i][j*2]  = dx[i][j] * fast_inv(ekf->hx[i]);
+			ekf->H[i][j*2]  = dx[i][j] * ekf_inv(ekf->hx[i]);
 		}
 		ekf->H[i][6] = 1;
 	} 
@@ -220,7 +220,7 @@ int main(int argc, char ** argv)
 	// Open input data file
 	FILE * ifp = fopen("gps.csv", "r");
 	if(!ifp){
-		printf("erro ao abrir gps.csv\n");
+		printf("Fail to open gps.csv\n");
 		//return 0; ?
 	}
 
@@ -228,11 +228,9 @@ int main(int argc, char ** argv)
 	skipline(ifp);
 
 	// Make a place to store the data from the file and the output of the EKF
-	//size_t samples = 250;
-	//size_t reps = 1000;
-	size_t samples = 600;
-	//size_t samples = 2;
-	size_t samples_in_file = 60;
+	size_t samples_in_file = 80;
+	size_t samples = 10*samples_in_file;	//80 samples/arquivo
+	// size_t samples = 2;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
 	number_t Pos_KF[samples][3];
@@ -242,7 +240,7 @@ int main(int argc, char ** argv)
 	const char * OUTFILE = "ekf.csv";
 	FILE * ofp = fopen(OUTFILE, "w");
 	if(!ofp){
-		printf("erro ao abrir ekf.csv\n");
+		printf("Fail to open ekf.csv\n");
 		//return 0; ?
 	}
 
@@ -266,7 +264,7 @@ int main(int argc, char ** argv)
 		//chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
 		chol_status = ekf_step_ext(&un_ekf, SV_Rho);
 		if(chol_status == ERROR){
-			printf("Cholesky inversion failed on step %d \n",j);
+			printf("Matrix Inversion fail on step %d \n",j);
 		}
 
 		// grab positions & velocities - 
@@ -290,6 +288,9 @@ int main(int argc, char ** argv)
 	// Dump filtered positions minus their means
 	// Also print position minus means and velocities.
 	for (j=0; j<samples; ++j) {
+		if(j>=samples_in_file && j%samples_in_file==0){
+			printf("--RESTART FILE--\n");
+		}
 		x_pos = Pos_KF[j][0]-mean_Pos_KF[0];
 		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
 		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];

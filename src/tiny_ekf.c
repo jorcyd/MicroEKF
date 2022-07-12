@@ -39,7 +39,7 @@ static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, cons
 				if (acc <= (number_t)0) {
 					return ERROR; /* error */
 				}
-				p[i] = fast_rsqrtf(acc);	//1.0f/sqrtf(acc);
+				p[i] = ekf_rsqrtf(acc);	//1.0f/sqrtf(acc);
 			}
 			else {
 				a[j*n+i] = acc * p[i];
@@ -114,7 +114,7 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 	dim_t i, j, k;
 	number_t f;
 
-	#ifdef PIVOT
+	#ifndef NOPIVOT
 	dim_t p;
 	number_t g,tol;
 	#endif
@@ -122,16 +122,17 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 	 /* Function Body */
 	if (n < 1) return ERROR;
 	
-	#ifdef PIVOT
+	#ifndef NOPIVOT
 	f = 0;  /* Frobenius norm of A */
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < n; ++j) {
 			g = A[j+i*n];
-			f += g * g;
+			f += g*g;
 		}
 	}
-	f = fast_sqrtf(f);
-	tol = f * 2.2204460492503131e-016f;
+	f = ekf_sqrtf(f);
+	// tol = f * 2.22044604925e-16;	//double machine epsilon
+	tol = f * 1.19209e-07f; 		//float machine epsilon
 	#endif
 
 	for (i = 0; i < n; ++i) {  /* Set a to identity matrix. */
@@ -141,11 +142,11 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 	}
 	
 	for (k = 0; k < n; ++k) {  /* Main loop */
-		#ifdef PIVOT
-		f = fast_fabsf(A[k+k*n]);  /* Find pivot. */
+		#ifndef NOPIVOT
+		f = ekf_fabsf(A[k+k*n]);  /* Find pivot. */
 		p = k;
 		for (i = k+1; i < n; ++i) {
-			g = fast_fabsf(A[k+i*n]);
+			g = ekf_fabsf(A[k+i*n]);
 			if (g > f) {
 				f = g;
 				p = i;
@@ -169,7 +170,7 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 		#endif
 
 		//f = 1/A[k+k*n];  /* Scale row so pivot is 1. */
-		f = fast_inv(A[k+k*n]);
+		f = ekf_inv(A[k+k*n]);
 		for (j = k; j < n; ++j) A[j+k*n] *= f;
 		for (j = 0; j < n; ++j) a[j+k*n] *= f;
 		for (i = 0; i < n; ++i) {  /* Subtract to get zeros. */
@@ -182,11 +183,13 @@ static status_t gjinv(number_t *__restrict__ A, number_t *__restrict__ a, const 
 	return SUCCESS;
 }
 
-#ifdef __DEBUG__
+//#ifdef __DEBUG__
+__attribute__((__used__))
 static void dump(const number_t *__restrict__ a, const dim_t m, const dim_t n, const char * fmt)
 {
 	dim_t i,j;
 
+	printf("----------------------------------------------------\n"); // Divider
 	char f[100];
 	sprintf(f, "%s ", fmt);
 	for(i=0; i<m; ++i) {
@@ -195,7 +198,7 @@ static void dump(const number_t *__restrict__ a, const dim_t m, const dim_t n, c
 		printf("\n");
 	}
 }
-#endif
+//#endif
 
 static void zeros(number_t *__restrict__ a, const  dim_t m, const  dim_t n)
 {
@@ -295,8 +298,8 @@ static void eyesub(number_t *__restrict__ a, const dim_t n)
 }
 
 /* 	Actual EKF step 
-	Both F and H matrices can be dependent upon the estimated state vector. (The ekf step must be looped outside this function)
-	z = State vector */
+	Both F and H matrices can be dependent upon the estimated state vector.
+	ekf = The Unpacked EKF struct , z = State vector */
 static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 {
 	dim_t m,n;
@@ -327,7 +330,6 @@ static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
 	sub(z, ekf.hx, ekf.tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
 	macvec(ekf.G, ekf.tmp5, ekf.x, n, m);				//\hat{x}_k += G_k*tmp5
-
 	/* Update : Updated (a posteriori) estimate covariance */
 	/* P_k = (I - G_k H_k) P_k */
 	mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);			//tmp0 = G_k*H_k
@@ -335,7 +337,7 @@ static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k+ = tmp0*P_k
 	/* Joseph stabilized form */
 	/* P_k = (I - G_k H_k) P_k (I - G_k H_k)^T + G_k R G_k^T */
-	#if 0
+	#ifdef JOSEPH
 	transpose(ekf.tmp0, ekf.tmp6, n, n); 				//tmp6 = (I - G_k H_k)^T
 	mulmat(ekf.P, ekf.tmp6, ekf.tmp0, n ,n, n);			//tmp0 = P_k+*tmp6
 	transpose(ekf.G, ekf.tmp2, n, m);					//tmp2 = G_k^T
@@ -343,9 +345,9 @@ static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	mulmat(ekf.tmp1, ekf.tmp2, ekf.P, n, m, n);			//P_k+ = tmp1*tmp2
 	accum(ekf.P, ekf.tmp0, n, n);						//P_k+ = tmp0
 	#endif
+	//dump(ekf.P, n, n, "| %f |");
 	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
-	/* P_k =( P_k + P_k^T)/2*/
-	symmetrize(ekf.P,n);
+	symmetrize(ekf.P,n);								//P_k =( P_k + P_k^T)/2
 
 	/* success */
 	return SUCCESS;
