@@ -322,8 +322,11 @@ static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
 	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
 	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
+	#ifdef GJINV
+	if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
+	#else
 	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
-	//if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
+	#endif
 	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
 
 	/* Update : Innovation or measurement pre-fit residual */
