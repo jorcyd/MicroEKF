@@ -15,7 +15,7 @@
 	https://stats.stackexchange.com/questions/254749/square-root-algorithm-kalman-filter 
 	http://www.anuncommonlab.com/articles/how-kalman-filters-work/part2.html */
 
-/*	Writing Cache Friendly Code - Comparison of Matrix Multiplication
+/*	Writing Cache Friendly Code - Comparison of Matrix Multiplication (Slides derived from those by Randy Bryant)
 	https://courses.engr.illinois.edu/cs232/sp2009/lectures/X18.pdf */
 
 /*	Cholesky-decomposition matrix-inversion code, adapated from
@@ -23,6 +23,12 @@
 
 /*	Gauss-Jordan Matrix inversion code adapted from
 	https://rosettacode.org/wiki/Gauss-Jordan_matrix_inversion#C */
+
+/*	Wolfram MathWorld - Positive Definite Matrix
+	https://mathworld.wolfram.com/PositiveDefiniteMatrix.html */
+
+/*	Sources of Error in Numerical Computation
+	http://www.cs.unc.edu/~smp/COMP205/LECTURES/ERROR/lec23/node2.html */
 
 __attribute__((__used__))
 static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
