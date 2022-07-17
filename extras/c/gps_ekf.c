@@ -306,10 +306,12 @@ int main(int argc, char ** argv)
 
 	// Done!
 	if(ifp){
-	   fclose(ifp);
+		printf("input close\n");
+		fclose(ifp);
 	}
 	if(ofp) {
-	   fclose(ofp);
+		printf("output close\n");
+		fclose(ofp);
 	}
 	
 	printf("Wrote file %s\n", OUTFILE);

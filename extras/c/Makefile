@@ -17,10 +17,10 @@ run: gps_ekf
 	./gps_ekf
 
 gps_ekf: gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	$(CC) $(CFLAGS) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
+	$(CC) $(CFLAGS) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/ekf_math.c -lm
 	
 prof:	gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/tiny_ekf.h
-	$(CC) $(CFLAGS) $(PROF) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c -lm
+	$(CC) $(CFLAGS) $(PROF) -I. -I$(SRC) -o gps_ekf gps_ekf.c $(SRC)/tiny_ekf.c $(SRC)/ekf_math.c -lm
 
 edit:
 	vim gps_ekf.c
