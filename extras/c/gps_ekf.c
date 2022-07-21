@@ -230,7 +230,7 @@ int main(int argc, char ** argv)
 	// Make a place to store the data from the file and the output of the EKF
 	size_t samples_in_file = 80;
 	size_t samples = 10*samples_in_file;	//80 samples/arquivo
-	// size_t samples = 2;
+	// size_t samples = 10;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
 	number_t Pos_KF[samples][3];
@@ -285,7 +285,7 @@ int main(int argc, char ** argv)
 		mean_Pos_KF[k] /= samples;
 	}
 
-	// Dump filtered positions minus their means
+	// Dump filtered positions minus their means (or just the pure position)
 	// Also print position minus means and velocities.
 	for (j=0; j<samples; ++j) {
 		if(j>=samples_in_file && j%samples_in_file==0){
@@ -295,8 +295,8 @@ int main(int argc, char ** argv)
 		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
 		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
 		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
-		printf("%f %f %f / ", x_pos,y_pos,z_pos);
-		//printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
+		//printf("%f %f %f / ", x_pos,y_pos,z_pos);
+		printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
 		printf("%f %f %f\n", Vel_KF[j][0], Vel_KF[j][1], Vel_KF[j][2]);
 	}
 	

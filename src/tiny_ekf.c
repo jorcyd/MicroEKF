@@ -263,6 +263,7 @@ static void accum(number_t *__restrict__ a, const number_t *__restrict__ b, cons
 }
 
 /* A <- (A + A^T)/2*/
+__attribute__((__used__))
 static void symmetrize(number_t *__restrict__ a, const dim_t n) //square mat.
 {
 	dim_t i,j;
@@ -354,9 +355,9 @@ static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
 	mulmat(ekf.tmp1, ekf.tmp2, ekf.P, n, m, n);			//P_k+ = tmp1*tmp2
 	accum(ekf.P, ekf.tmp0, n, n);						//P_k+ = tmp0
 	#endif
-	//dump(ekf.P, n, n, "| %f |");
-	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_plus = (cov_plus + cov_plus')/2 after the covariance update.*/
+	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_+ = (cov_+ + cov_+')/2 after the covariance update. */
 	symmetrize(ekf.P,n);								//P_k =( P_k + P_k^T)/2
+	//dump(ekf.P, n, n, "| %f |");
 
 	/* success */
 	return SUCCESS;
