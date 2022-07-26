@@ -56,8 +56,15 @@
 #include "tinyekf_config.h"		//Local ekf structure.
 #include "tiny_ekf.h"
 
-// positioning interval
-static const number_t T = 1;
+//Model parameters
+static const number_t T = 1;				// positioning interval
+static const number_t Sf    = 36;
+static const number_t Sg    = 0.01;
+static const number_t sigma = 5;         	// state transition variance
+static const number_t Qb[4] = {Sf*T+Sg*T*T*T/3, Sg*T*T/2, Sg*T*T/2, Sg*T};
+static const number_t Qxyz[4] = {sigma*sigma*T*T*T/3, sigma*sigma*T*T/2, sigma*sigma*T*T/2, sigma*sigma*T};
+static const number_t P0 = 10;				//(Initial)state noise
+static const number_t R0 = 36;				//measurament noise
 
 static void blkfill(ekf_t * ekf, const number_t * a, int off)
 {
@@ -69,34 +76,29 @@ static void blkfill(ekf_t * ekf, const number_t * a, int off)
 	ekf->Q[off+1] [off+1] = a[3];
 }
 
-
-static void model_init(ekf_t * ekf)
-{
-	// Set Q, see [1]
-	const number_t Sf    = 36;
-	const number_t Sg    = 0.01;
-	const number_t sigma = 5;         		// state transition variance
-	const number_t Qb[4] = {Sf*T+Sg*T*T*T/3, Sg*T*T/2, Sg*T*T/2, Sg*T};
-	const number_t Qxyz[4] = {sigma*sigma*T*T*T/3, sigma*sigma*T*T/2, sigma*sigma*T*T/2, sigma*sigma*T};
-
+// Set Q matrix, see [1]
+static void set_Q(ekf_t * ekf){
 	blkfill(ekf, Qxyz, 0);
 	blkfill(ekf, Qxyz, 1);
 	blkfill(ekf, Qxyz, 2);
 	blkfill(ekf, Qb,   3);
+}
 
-	// initial covariances of state noise, measurement noise (how to estimat ?)
-	number_t P0 = 10;		//state noise
-	number_t R0 = 36;		//measurament noise
+//Set/Reset initial state and sensor covariance matrices.
+static void set_PR(number_t* A,dim_t n,number_t v){
+	dim_t i,j;
+	for(i=0;i<n;++i)
+		for(j=0;j<n;++j)
+			A[i*n+j] = i==j?v:(number_t)0;	
+}
 
-	dim_t i;
+static void model_init(ekf_t * ekf)
+{
 
-	for (i=0; i<8; ++i){
-		ekf->P[i][i] = P0;
-	}
-
-	for (i=0; i<4; ++i){
-		ekf->R[i][i] = R0;
-	}
+	//Q acts as a sort of regularization parameter over the noise estimates.
+	set_Q(ekf);
+	set_PR((number_t*)ekf->P,8,P0);
+	set_PR((number_t*)ekf->R,4,R0);
 
 	// initial position
 	ekf->x[0] =  (number_t)-2.168816181271560e+006f;
@@ -264,7 +266,8 @@ int main(int argc, char ** argv)
 		//chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
 		chol_status = ekf_step_ext(&un_ekf, SV_Rho);
 		if(chol_status == ERROR){
-			printf("Matrix Inversion fail on step %d \n",j);
+			printf("Inversion fail on step %d - Resetting State Covariance\n",j);
+			set_PR((number_t*)ekf.P,8,P0);
 		}
 
 		// grab positions & velocities - 
