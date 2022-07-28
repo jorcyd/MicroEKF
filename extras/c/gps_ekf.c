@@ -232,11 +232,13 @@ int main(int argc, char ** argv)
 	// Make a place to store the data from the file and the output of the EKF
 	size_t samples_in_file = 80;
 	size_t samples = 10*samples_in_file;	//80 samples/arquivo
-	// size_t samples = 10;
 	number_t SV_Pos[4][3];
 	number_t SV_Rho[4];
 	number_t Pos_KF[samples][3];
 	number_t Vel_KF[samples][3];
+	//Iteration on IEKF
+	const dim_t max_iekf_iter = 8;			//maximum IEKF iterations
+	dim_t iekf_iter = 0;
 
 	// Open output CSV file and write header
 	const char * OUTFILE = "ekf.csv";
@@ -248,7 +250,7 @@ int main(int argc, char ** argv)
 
 	fprintf(ofp, "X,Y,Z\n");
 
-	dim_t j, k;
+	dim_t j,k;
 	status_t chol_status = 0;
 	number_t x_pos,y_pos,z_pos;
 
@@ -262,13 +264,26 @@ int main(int argc, char ** argv)
 		readdata(ifp, SV_Pos, SV_Rho);	//SV Pos/Rho = Sensor vector ?
 		model_step(&ekf, SV_Pos);
 
-		//first_iter = j==0;
-		//chol_status = ekf_step(&ekf, SV_Rho);	//Observation matrix always change
-		chol_status = ekf_step_ext(&un_ekf, SV_Rho);
-		if(chol_status == ERROR){
-			printf("Inversion fail on step %d - Resetting State Covariance\n",j);
-			set_PR((number_t*)ekf.P,8,P0);
-		}
+		//chol_status = ekf_step_ext(&un_ekf, SV_Rho);
+		// if(chol_status == ERROR){
+		// 	printf("Inversion fail on step %d - Resetting State Covariance\n",j);
+		// 	set_PR((number_t*)ekf.P,8,P0);
+		// }
+
+		iekf_iter = max_iekf_iter;
+		do {
+			iekf_iter--;
+			chol_status = ekf_step_ext_state(&un_ekf, SV_Rho);
+			if(chol_status == ERROR){
+				printf("Inversion fail on step %d - Resetting State Covariance\n",j);
+				set_PR((number_t*)ekf.P,8,P0);
+				continue;
+			}
+			if(iekf_iter>0){
+				update_H(&ekf,SV_Pos);
+			}
+		} while(iekf_iter>0);
+		ekf_step_ext_covariance(&un_ekf);
 
 		// grab positions & velocities - 
 		for (k=0; k<3; ++k){
@@ -298,9 +313,8 @@ int main(int argc, char ** argv)
 		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
 		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
 		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
-		//printf("%f %f %f / ", x_pos,y_pos,z_pos);
-		printf("%f %f %f / ", Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]);
-		printf("%f %f %f\n", Vel_KF[j][0], Vel_KF[j][1], Vel_KF[j][2]);
+		printf("%f %f %f / ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]); 	//	Print Positions
+		printf("%f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2]);	//	Print Velocity
 	}
 	
 

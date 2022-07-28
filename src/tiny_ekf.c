@@ -315,7 +315,7 @@ static status_t ekf_update_state(unpacked_ekf_t *ekf, const number_t * z)
 	n = ekf->n;
 
 	/* Pre-Predict : Update state vector beforehand in case Kalman gain fails to compute */
-	copyarray(ekf->x,ekf->fx, n);							//\hat{x}_k = \hat{x_k}
+	copyarray(ekf->x,ekf->fx, n);						//\hat{x}_k = \hat{x_k}
 
 	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
@@ -342,7 +342,7 @@ static status_t ekf_update_state(unpacked_ekf_t *ekf, const number_t * z)
 	/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
 	sub(z, ekf->hx, ekf->tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
 	macvec(ekf->G, ekf->tmp5, ekf->x, n, m);			//\hat{x}_k += G_k*tmp5
-
+	copyarray(ekf->fx,ekf->x, n);						//In case (I)EKF needs to (re)iterate
 	/* success */
 	return SUCCESS;
 }
