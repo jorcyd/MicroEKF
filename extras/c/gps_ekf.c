@@ -158,7 +158,7 @@ static void update_H(ekf_t * ekf, number_t SV[4][3]){
 			ekf->H[i][j*2]  = dx[i][j] * ekf_inv(ekf->hx[i]);
 		}
 		ekf->H[i][6] = 1;
-	} 
+	}
 }
 
 static void model_step(ekf_t * ekf, number_t SV[4][3]) { 

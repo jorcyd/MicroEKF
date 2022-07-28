@@ -1,6 +1,6 @@
 #include "ekf_math.h"
 
-/* References to bit-hack based routines :
+/* References to bit-hack based routines and fast int divison 	:
  * https://github.com/hcs0/Hackers-Delight/blob/master/rsqrt.c.txt
  * https://bits.stephan-brumme.com/squareRoot.html 
  * https://github.com/hcs0/Hackers-Delight/blob/master/asqrt.c.txt
@@ -9,6 +9,8 @@
  * https://stackoverflow.com/questions/31031223/fast-approximate-float-division	
  * https://stackoverflow.com/questions/4930307/fastest-way-to-get-the-integer-part-of-sqrtn
  * https://stackoverflow.com/questions/23474796/is-there-a-fast-fabsf-replacement-for-float-in-c
+ * https://blog.segger.com/algorithms-for-division-part-1/
+ * (Check also part 2,3,4 for divison algorithms)
  */
 
 #ifdef EMBEDDED	//if set to run on embedded targets with basic fp support.

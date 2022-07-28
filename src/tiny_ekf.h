@@ -62,3 +62,6 @@ void ekf_init_ext(const void * v, const dim_t n, const dim_t m, unpacked_ekf_t *
 
 status_t ekf_step(const void * ekf, const number_t * z);
 status_t ekf_step_ext(unpacked_ekf_t *ekf, const number_t * z);
+
+status_t ekf_step_ext_state(unpacked_ekf_t *ekf, const number_t * z);	//solely state update
+void ekf_step_ext_covariance(unpacked_ekf_t *ekf);						//solely covariance update

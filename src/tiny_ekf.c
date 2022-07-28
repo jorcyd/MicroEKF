@@ -30,6 +30,9 @@
 /*	Sources of Error in Numerical Computation
 	http://www.cs.unc.edu/~smp/COMP205/LECTURES/ERROR/lec23/node2.html */
 
+/*	Iterated EKF from: Mobile Robot Localization and Mapping using the Kalman Filter
+	Paul E. Rybski */
+
 __attribute__((__used__))
 static status_t choldc1(number_t *__restrict__ a, number_t *__restrict__ p, const dim_t n) {
 	dim_t i,j,k;
@@ -304,67 +307,84 @@ static void eyesub(number_t *__restrict__ a, const dim_t n)
 				a[i*n+j] = ((i==j)?1:0) - a[i*n+j];
 }
 
-/* 	Actual EKF step 
-	Both F and H matrices can be dependent upon the estimated state vector.
-	ekf = The Unpacked EKF struct , z = State vector */
-static status_t do_ekf_step(unpacked_ekf_t ekf, const number_t * z)
+/*	EKF State Vector Update */
+static status_t ekf_update_state(unpacked_ekf_t *ekf, const number_t * z)
 {
 	dim_t m,n;
-	m = ekf.m;
-	n = ekf.n;
+	m = ekf->m;
+	n = ekf->n;
+
 	/* Pre-Predict : Update state vector beforehand in case Kalman gain fails to compute */
-	copyarray(ekf.x,ekf.fx, n);							//\hat{x}_k = \hat{x_k}
+	copyarray(ekf->x,ekf->fx, n);							//\hat{x}_k = \hat{x_k}
 
 	/* Predict : Predicted (a priori) estimate covariance */
 	/* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
-	transpose(ekf.F, ekf.Ft, n, n);						//F^T_{k-1}
-	mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);			//tmp0 = F_{k-1}*P_{k-1}
-	mulmat(ekf.tmp0, ekf.Ft, ekf.Pp, n, n, n);			//P_k = tmp0*F^T_{k-1}
-	accum(ekf.Pp, ekf.Q, n, n);							//P_k += Q_{k-1}
+	transpose(ekf->F, ekf->Ft, n, n);					//F^T_{k-1}
+	mulmat(ekf->F, ekf->P, ekf->tmp0, n, n, n);			//tmp0 = F_{k-1}*P_{k-1}
+	mulmat(ekf->tmp0, ekf->Ft, ekf->Pp, n, n, n);		//P_k = tmp0*F^T_{k-1}
+	accum(ekf->Pp, ekf->Q, n, n);						//P_k += Q_{k-1}
 
 	/* Update : Optimal Kalman gain */
 	/* G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1} */
-	transpose(ekf.H, ekf.Ht, m, n);						//H^T_k
-	mulmat(ekf.Pp, ekf.Ht, ekf.tmp1, n, n, m);			//tmp1 = P_k*H^T_k
-	mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);			//tmp2 = H_k*P_k
-	mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
-	accum(ekf.tmp3, ekf.R, m, m);						//tmp3 += R
+	transpose(ekf->H, ekf->Ht, m, n);					//H^T_k
+	mulmat(ekf->Pp, ekf->Ht, ekf->tmp1, n, n, m);		//tmp1 = P_k*H^T_k
+	mulmat(ekf->H, ekf->Pp, ekf->tmp2, m, n, n);		//tmp2 = H_k*P_k
+	mulmat(ekf->tmp2, ekf->Ht, ekf->tmp3, m, n, m);		//tmp3 = tmp2*H^T_k
+	accum(ekf->tmp3, ekf->R, m, m);						//tmp3 += R
 	#ifdef GJINV
-	if (gjinv(ekf.tmp3, ekf.tmp4, m) == ERROR) return ERROR;
+	if (gjinv(ekf->tmp3, ekf->tmp4, m) == ERROR) return ERROR;
 	#else
-	if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
+	if (cholsl(ekf->tmp3, ekf->tmp4, ekf->tmp5, m) == ERROR) return ERROR;	//tmp4 = tmp3^-1 / tmp5 = pivots(?)
 	#endif
-	mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);			//G_k = tmp1*temp4
+	mulmat(ekf->tmp1, ekf->tmp4, ekf->G, n, m, m);		//G_k = tmp1*temp4
 
 	/* Update : Innovation or measurement pre-fit residual */
 	/* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
-	sub(z, ekf.hx, ekf.tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
-	macvec(ekf.G, ekf.tmp5, ekf.x, n, m);				//\hat{x}_k += G_k*tmp5
-	/* Update : Updated (a posteriori) estimate covariance */
-	/* P_k = (I - G_k H_k) P_k */
-	mulmat(ekf.G, ekf.H, ekf.tmp0, n, m, n);			//tmp0 = G_k*H_k
-	eyesub(ekf.tmp0, n);								//tmp0 = I - tmp0 <=> tmp0 = I - G_k*H_k
-	mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);			//P_k+ = tmp0*P_k
-	/* Joseph stabilized form */
-	/* P_k = (I - G_k H_k) P_k (I - G_k H_k)^T + G_k R G_k^T */
-	#ifdef JOSEPH
-	transpose(ekf.tmp0, ekf.tmp6, n, n); 				//tmp6 = (I - G_k H_k)^T
-	mulmat(ekf.P, ekf.tmp6, ekf.tmp0, n ,n, n);			//tmp0 = P_k+*tmp6
-	transpose(ekf.G, ekf.tmp2, n, m);					//tmp2 = G_k^T
-	mulmat(ekf.G, ekf.R, ekf.tmp1, n, m, m);			//tmp1 = G_k*R
-	mulmat(ekf.tmp1, ekf.tmp2, ekf.P, n, m, n);			//P_k+ = tmp1*tmp2
-	accum(ekf.P, ekf.tmp0, n, n);						//P_k+ = tmp0
-	#endif
-	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_+ = (cov_+ + cov_+')/2 after the covariance update. */
-	symmetrize(ekf.P,n);								//P_k =( P_k + P_k^T)/2
-	//dump(ekf.P, n, n, "| %f |");
+	sub(z, ekf->hx, ekf->tmp5, m);						//tmp5 = z_k - h(\hat{x}_k)
+	macvec(ekf->G, ekf->tmp5, ekf->x, n, m);			//\hat{x}_k += G_k*tmp5
 
 	/* success */
 	return SUCCESS;
 }
 
-/* EKF Stucts Intialization , Unpacking and Step-Call */
+/* EKF à Posteriori Covariance Update */
+static void ekf_update_covariance(unpacked_ekf_t *ekf)
+{
+	dim_t m,n;
+	m = ekf->m;
+	n = ekf->n;
 
+	/* Update : Updated (a posteriori) estimate covariance */
+	/* P_k = (I - G_k H_k) P_k */
+	mulmat(ekf->G, ekf->H, ekf->tmp0, n, m, n);			//tmp0 = G_k*H_k
+	eyesub(ekf->tmp0, n);								//tmp0 = I - tmp0 <=> tmp0 = I - G_k*H_k
+	mulmat(ekf->tmp0, ekf->Pp, ekf->P, n, n, n);		//P_k+ = tmp0*P_k
+	/* Joseph stabilized form */
+	/* P_k = (I - G_k H_k) P_k (I - G_k H_k)^T + G_k R G_k^T */
+	#ifdef JOSEPH
+	transpose(ekf->tmp0, ekf->tmp6, n, n); 				//tmp6 = (I - G_k H_k)^T
+	mulmat(ekf->P, ekf->tmp6, ekf->tmp0, n ,n, n);		//tmp0 = P_k+*tmp6
+	transpose(ekf->G, ekf->tmp2, n, m);					//tmp2 = G_k^T
+	mulmat(ekf->G, ekf->R, ekf->tmp1, n, m, m);			//tmp1 = G_k*R
+	mulmat(ekf->tmp1, ekf->tmp2, ekf->P, n, m, n);		//P_k+ = tmp1*tmp2
+	accum(ekf->P, ekf->tmp0, n, n);						//P_k+ = tmp0
+	#endif
+	/* Post Update : A classical hack for ensuring at least symmetry is to do cov_+ = (cov_+ + cov_+')/2 after the covariance update. */
+	symmetrize(ekf->P,n);								//P_k =( P_k + P_k^T)/2
+	//dump(ekf->P, n, n, "| %f |");
+}
+
+/* 	Actual EKF step 
+	Both F and H matrices can be dependent upon the estimated state vector.
+	ekf = The Unpacked EKF struct , z = State vector */
+static status_t ekf_update_full(unpacked_ekf_t *ekf, const number_t * z)
+{
+	if(ekf_update_state(ekf,z) == ERROR) return ERROR;
+	ekf_update_covariance(ekf);
+	return SUCCESS;
+}
+
+/* EKF Stucts Intialization , Unpacking and Step-Call */
 //__attribute__((packed)) on void v
 static void unpack(const void *__restrict__ v, unpacked_ekf_t * ekf, const dim_t n, const dim_t m)
 {
@@ -465,10 +485,20 @@ status_t ekf_step(const void * v, const number_t * z)
 	unpacked_ekf_t ekf;
 	unpack(v, &ekf, n, m); 
  
-	return(do_ekf_step(ekf,z));
+	return(ekf_update_full(&ekf,z));
 }
 
 status_t ekf_step_ext(unpacked_ekf_t *ekf, const number_t * z)
 {
-	return(do_ekf_step(*ekf,z));
+	return(ekf_update_full(ekf,z));
+}
+
+status_t ekf_step_ext_state(unpacked_ekf_t *ekf, const number_t * z)
+{
+	return(ekf_update_state(ekf,z));
+}
+
+void ekf_step_ext_covariance(unpacked_ekf_t *ekf)
+{
+	ekf_update_covariance(ekf);
 }
