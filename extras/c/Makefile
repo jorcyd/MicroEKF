@@ -41,3 +41,4 @@ clean_emcc:
 #emcc -Wall -O3 -ffast-math -DEMBEDDED -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c ../../src/ekf_math.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv
 #deliberately using poor numeric precision
 #emcc -Wall -O0 -g -pg -DEMBEDDED -I. -I ../../src -o gps_ekf.html gps_ekf.c ../../src/tiny_ekf.c ../../src/ekf_math.c -lm -s WASM=1 -s EXPORTED_RUNTIME_METHODS=FS --preload-file gps.csv
+

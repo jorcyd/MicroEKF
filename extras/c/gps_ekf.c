@@ -237,7 +237,8 @@ int main(int argc, char ** argv)
 	number_t Pos_KF[samples][3];
 	number_t Vel_KF[samples][3];
 	//Iteration on IEKF
-	const dim_t max_iekf_iter = 8;			//maximum IEKF iterations
+	const dim_t max_iekf_iter = 12;			//maximum IEKF iterations (12 seems to be good enough)
+	//const dim_t max_iekf_iter = 8;
 	dim_t iekf_iter = 0;
 
 	// Open output CSV file and write header
@@ -279,6 +280,8 @@ int main(int argc, char ** argv)
 				set_PR((number_t*)ekf.P,8,P0);
 				continue;
 			}
+			//Covariance update should be performed outside the loop
+			//ekf_step_ext_covariance(&un_ekf);
 			if(iekf_iter>0){
 				update_H(&ekf,SV_Pos);
 			}
