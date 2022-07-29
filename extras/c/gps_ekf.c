@@ -232,13 +232,15 @@ int main(int argc, char ** argv)
 	// Make a place to store the data from the file and the output of the EKF
 	size_t samples_in_file = 80;
 	size_t samples = 10*samples_in_file;	//80 samples/arquivo
-	number_t SV_Pos[4][3];
-	number_t SV_Rho[4];
-	number_t Pos_KF[samples][3];
-	number_t Vel_KF[samples][3];
+	number_t SV_Pos[4][3];			//
+	number_t SV_Rho[4];				//X,Y,Z,T
+	const size_t dimensions = 4;	//X,Y,Z,T
+	//const size_t dimensions = 3; 	//X,Y,Z
+	number_t Pos_KF[samples][dimensions];
+	number_t Vel_KF[samples][dimensions];
 	//Iteration on IEKF
-	const dim_t max_iekf_iter = 12;			//maximum IEKF iterations (12 seems to be good enough)
-	//const dim_t max_iekf_iter = 8;
+	//const dim_t max_iekf_iter = 12;			//maximum IEKF iterations (12 seems to be good enough)
+	const dim_t max_iekf_iter = 8;
 	dim_t iekf_iter = 0;
 
 	// Open output CSV file and write header
@@ -289,7 +291,7 @@ int main(int argc, char ** argv)
 		ekf_step_ext_covariance(&un_ekf);
 
 		// grab positions & velocities - 
-		for (k=0; k<3; ++k){
+		for (k=0; k<dimensions; ++k){
 			Pos_KF[j][k] = ekf.x[2*k];
 			Vel_KF[j][k] = ekf.x[2*k+1];
 		}
@@ -298,11 +300,11 @@ int main(int argc, char ** argv)
 	// Compute means of filtered positions
 	number_t mean_Pos_KF[3] = {0, 0, 0};
 	for (j=0; j<samples; ++j){ 
-		for (k=0; k<3; ++k){
+		for (k=0; k<dimensions; ++k){
 			mean_Pos_KF[k] += Pos_KF[j][k];
 		}
 	}
-	for (k=0; k<3; ++k){
+	for (k=0; k<dimensions; ++k){
 		mean_Pos_KF[k] /= samples;
 	}
 
@@ -316,8 +318,10 @@ int main(int argc, char ** argv)
 		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
 		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
 		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
-		printf("%f %f %f / ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]); 	//	Print Positions
-		printf("%f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2]);	//	Print Velocity
+		printf("%f %f %f %f/ ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2],Pos_KF[j][3]); 	//	Print Positions
+		printf("%f %f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2],Vel_KF[j][3]);	//	Print Velocity
+		// printf("%f %f %f / ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]); 	//	Print Positions
+		// printf("%f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2]);	//	Print Velocity
 	}
 	
 
