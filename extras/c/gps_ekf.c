@@ -66,6 +66,16 @@ static const number_t Qxyz[4] = {sigma*sigma*T*T*T/3, sigma*sigma*T*T/2, sigma*s
 static const number_t P0 = 10;				//(Initial)state noise
 static const number_t R0 = 36;				//measurament noise
 
+//Initial model state
+static const number_t X0 = -2.168816181271560e+006f;
+static const number_t Y0 = 4.386648549091666e+006;
+static const number_t Z0 = 4.077161596428751e+006f;
+static const number_t VX0 = 0;
+static const number_t VY0 = 0;
+static const number_t VZ0 = 0;
+static const number_t CB0 = 3.575261153706439e+006f; // clock bias
+static const number_t CD0 = 4.549246345845814e+001f; // clock drift
+
 static void blkfill(ekf_t * ekf, const number_t * a, int off)
 {
 	off *= 2;
@@ -99,22 +109,15 @@ static void model_init(ekf_t * ekf)
 	set_Q(ekf);
 	set_PR((number_t*)ekf->P,8,P0);
 	set_PR((number_t*)ekf->R,4,R0);
-
-	// initial position
-	ekf->x[0] =  (number_t)-2.168816181271560e+006f;
-	ekf->x[2] =  (number_t)4.386648549091666e+006;
-	ekf->x[4] =  (number_t)4.077161596428751e+006f;
-
-	// initial zeroed velocity (zeroed ?)
-	ekf->x[1] = (number_t)0;
-	ekf->x[3] = (number_t)0;
-	ekf->x[5] = (number_t)0;
-	// Assuming some initial velocity in this case (?)
-
-	// clock bias
-	ekf->x[6] = (number_t)3.575261153706439e+006f;
-	// clock drift
-	ekf->x[7] = (number_t)4.549246345845814e+001f;
+	// Initial State
+	ekf->x[0] = X0;
+	ekf->x[1] = VX0;
+	ekf->x[2] = Y0;
+	ekf->x[3] = VY0;
+	ekf->x[4] = Z0;
+	ekf->x[5] = VZ0;
+	ekf->x[6] = CB0;
+	ekf->x[7] = CD0;
 }
 
 static void update_fx(ekf_t * ekf){
@@ -172,7 +175,7 @@ static void readline(char * line, FILE * fp)
 	fgets(line, 1000, fp);
 }
 
-static void readdata(FILE * fp, number_t SV_Pos[4][3], number_t SV_Rho[4])
+static void readdata(FILE * fp, number_t sat_pos[4][3], number_t sat_dist[4])
 {
 	char line[1000];
 
@@ -185,13 +188,13 @@ static void readdata(FILE * fp, number_t SV_Pos[4][3], number_t SV_Rho[4])
 
 	for (i=0; i<4; ++i) {
 		for (j=0; j<3; ++j) {
-			SV_Pos[i][j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
+			sat_pos[i][j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
 			p = strtok(NULL, ",");
 		}
 	}
 
 	for (j=0; j<4; ++j) {
-		SV_Rho[j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
+		sat_dist[j] = strtof(p,NULL);//strtod(p,NULL);//atof(p);
 		p = strtok(NULL, ",");
 	}
 }
@@ -230,17 +233,18 @@ int main(int argc, char ** argv)
 	skipline(ifp);
 
 	// Make a place to store the data from the file and the output of the EKF
-	size_t samples_in_file = 80;
-	size_t samples = 10*samples_in_file;	//80 samples/arquivo
-	number_t SV_Pos[4][3];			//
-	number_t SV_Rho[4];				//X,Y,Z,T
-	const size_t dimensions = 4;	//X,Y,Z,T
-	//const size_t dimensions = 3; 	//X,Y,Z
-	number_t Pos_KF[samples][dimensions];
-	number_t Vel_KF[samples][dimensions];
+	size_t samples_in_file = 200;
+	//size_t samples_in_file = 25;
+	//size_t samples = 10*samples_in_file;	//80 samples/arquivo
+	size_t samples = 200;
+	number_t sat_pos[4][3];					//P11,P12,P13,P21,P22,P23,P31,P32,P33,P41,P42,P43
+	number_t sat_dist[4];					//R1,R2,R3,R4
+	const size_t dimensions = 4;
+	number_t pos_kf[samples][dimensions];	//X,Y,Z,CB
+	number_t vel_kf[samples][dimensions];	//VX,VY,VZ,CD
 	//Iteration on IEKF
-	//const dim_t max_iekf_iter = 12;			//maximum IEKF iterations (12 seems to be good enough)
-	const dim_t max_iekf_iter = 8;
+	//const dim_t max_iekf_iter = 12;		//maximum IEKF iterations (12 seems to be good enough)
+	const dim_t max_iekf_iter = 4;			//4 filter iterations
 	dim_t iekf_iter = 0;
 
 	// Open output CSV file and write header
@@ -264,19 +268,13 @@ int main(int argc, char ** argv)
 			skipline(ifp);
 		}
 
-		readdata(ifp, SV_Pos, SV_Rho);	//SV Pos/Rho = Sensor vector ?
-		model_step(&ekf, SV_Pos);
-
-		//chol_status = ekf_step_ext(&un_ekf, SV_Rho);
-		// if(chol_status == ERROR){
-		// 	printf("Inversion fail on step %d - Resetting State Covariance\n",j);
-		// 	set_PR((number_t*)ekf.P,8,P0);
-		// }
+		readdata(ifp,sat_pos,sat_dist);
+		model_step(&ekf,sat_pos);
 
 		iekf_iter = max_iekf_iter;
 		do {
 			iekf_iter--;
-			chol_status = ekf_step_ext_state(&un_ekf, SV_Rho);
+			chol_status = ekf_step_ext_state(&un_ekf,sat_dist);
 			if(chol_status == ERROR){
 				printf("Inversion fail on step %d - Resetting State Covariance\n",j);
 				set_PR((number_t*)ekf.P,8,P0);
@@ -285,27 +283,27 @@ int main(int argc, char ** argv)
 			//Covariance update should be performed outside the loop
 			//ekf_step_ext_covariance(&un_ekf);
 			if(iekf_iter>0){
-				update_H(&ekf,SV_Pos);
+				update_H(&ekf,sat_pos);
 			}
 		} while(iekf_iter>0);
 		ekf_step_ext_covariance(&un_ekf);
 
 		// grab positions & velocities - 
 		for (k=0; k<dimensions; ++k){
-			Pos_KF[j][k] = ekf.x[2*k];
-			Vel_KF[j][k] = ekf.x[2*k+1];
+			pos_kf[j][k] = ekf.x[2*k];
+			vel_kf[j][k] = ekf.x[2*k+1];
 		}
 	}
 
 	// Compute means of filtered positions
-	number_t mean_Pos_KF[3] = {0, 0, 0};
+	number_t mean_pos_kf[3] = {0, 0, 0};
 	for (j=0; j<samples; ++j){ 
 		for (k=0; k<dimensions; ++k){
-			mean_Pos_KF[k] += Pos_KF[j][k];
+			mean_pos_kf[k] += pos_kf[j][k];
 		}
 	}
 	for (k=0; k<dimensions; ++k){
-		mean_Pos_KF[k] /= samples;
+		mean_pos_kf[k] /= samples;
 	}
 
 	// Dump filtered positions minus their means (or just the pure position)
@@ -314,14 +312,14 @@ int main(int argc, char ** argv)
 		if(j>=samples_in_file && j%samples_in_file==0){
 			printf("--RESTART FILE--\n");
 		}
-		x_pos = Pos_KF[j][0]-mean_Pos_KF[0];
-		y_pos = Pos_KF[j][1]-mean_Pos_KF[1];
-		z_pos = Pos_KF[j][2]-mean_Pos_KF[2];
+		x_pos = pos_kf[j][0]-mean_pos_kf[0];
+		y_pos = pos_kf[j][1]-mean_pos_kf[1];
+		z_pos = pos_kf[j][2]-mean_pos_kf[2];
 		fprintf(ofp, "%f,%f,%f\n",x_pos,y_pos,z_pos);
-		printf("%f %f %f %f/ ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2],Pos_KF[j][3]); 	//	Print Positions
-		printf("%f %f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2],Vel_KF[j][3]);	//	Print Velocity
-		// printf("%f %f %f / ",Pos_KF[j][0],Pos_KF[j][1],Pos_KF[j][2]); 	//	Print Positions
-		// printf("%f %f %f\n",Vel_KF[j][0],Vel_KF[j][1],Vel_KF[j][2]);	//	Print Velocity
+		printf("%f %f %f %f/ ",pos_kf[j][0],pos_kf[j][1],pos_kf[j][2],pos_kf[j][3]); 	//	Print Positions
+		printf("%f %f %f %f\n",vel_kf[j][0],vel_kf[j][1],vel_kf[j][2],vel_kf[j][3]);	//	Print Velocity
+		// printf("%f %f %f / ",pos_kf[j][0],pos_kf[j][1],pos_kf[j][2]); 	//	Print Positions
+		// printf("%f %f %f\n",vel_kf[j][0],vel_kf[j][1],vel_kf[j][2]);	//	Print Velocity
 	}
 	
 
