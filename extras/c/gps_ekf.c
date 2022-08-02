@@ -243,8 +243,7 @@ int main(int argc, char ** argv)
 	number_t pos_kf[samples][dimensions];	//X,Y,Z,CB
 	number_t vel_kf[samples][dimensions];	//VX,VY,VZ,CD
 	//Iteration on IEKF
-	//const dim_t max_iekf_iter = 12;		//maximum IEKF iterations (12 seems to be good enough)
-	const dim_t max_iekf_iter = 4;			//4 filter iterations
+	const dim_t max_iekf_iter = 2;			//2 filter iterations
 	dim_t iekf_iter = 0;
 
 	// Open output CSV file and write header
@@ -258,7 +257,7 @@ int main(int argc, char ** argv)
 	fprintf(ofp, "X,Y,Z\n");
 
 	dim_t j,k;
-	status_t chol_status = 0;
+	status_t chol_status = ERROR;
 	number_t x_pos,y_pos,z_pos;
 
 	// Loop till no more data
@@ -280,15 +279,14 @@ int main(int argc, char ** argv)
 				set_PR((number_t*)ekf.P,8,P0);
 				continue;
 			}
-			//Covariance update should be performed outside the loop
-			//ekf_step_ext_covariance(&un_ekf);
 			if(iekf_iter>0){
 				update_H(&ekf,sat_pos);
 			}
 		} while(iekf_iter>0);
+		//Covariance update should be performed outside the loop
 		ekf_step_ext_covariance(&un_ekf);
 
-		// grab positions & velocities - 
+		//Grab positions & velocities 
 		for (k=0; k<dimensions; ++k){
 			pos_kf[j][k] = ekf.x[2*k];
 			vel_kf[j][k] = ekf.x[2*k+1];
